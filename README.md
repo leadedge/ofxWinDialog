@@ -10,7 +10,7 @@ ofxWinDialog has been developed using Visual Studio 2022.
 
 ### Setup
 
-1. Add to your Visual Studio project :\
+1. Add to your Visual Studio project :
 	<pre>
 		ofxWinDialog
 		src
