@@ -68,7 +68,7 @@ Controls can be :
 - Group
 - Static text
 
-For details refer to ofxWinDialog.h and the addon example source.
+For details refer to the ofxWinDialog and example source files.
 
 For example :
 
