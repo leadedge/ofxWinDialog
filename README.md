@@ -67,7 +67,7 @@ Controls can be :
 - Slider
 - Edit control
 - Combo list box
-- Group
+- Group box
 - Static text
 
 For details refer to the ofxWinDialog and example source files.
