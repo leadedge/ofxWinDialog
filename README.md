@@ -47,7 +47,7 @@ In ofApp.cpp create a new dialog object. Pass the application class pointer and 
   
 Create a function in ofApp that will receive messages back from ofxWinDialog : :
 
-    void ofApp::appDialogFunction(std::string title, int value);
+    void ofApp::ofxWinDialogFunction(std::string title, int value);
   
 The "title" string and "value" integer are returned whenever a dialog control is changed. Compare the string returned with the dialog control title and use the value to take action as required. If multiple dialogs are created, each requires a separate callback function.
 
