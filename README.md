@@ -6,6 +6,8 @@ Can be used together with [ofxWinMenu](https://github.com/leadedge/ofxWinMenu) t
 
 ofxWinDialog has been developed using Visual Studio 2022.
 
+![example-dialog](https://github.com/user-attachments/assets/91dbe0ec-de96-4c10-82f0-27e43cbf6c86 | width=100)
+
 ### Setup
 
 1. Add to your Visual Studio project :\
