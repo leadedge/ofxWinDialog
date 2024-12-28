@@ -47,7 +47,7 @@ In ofApp.cpp create a new dialog object. Pass the application class pointer and 
 	HINSTANCE hInstance = GetModuleHandle(NULL);
     dialog = new ofxWinDialog(this, hinstance, hwnd, L"dialog1");
   
-Create a function in ofApp that will receive messages back from ofxWinDialog : :
+Create a function in ofApp that will receive messages back from ofxWinDialog.
 
     void ofApp::ofxWinDialogFunction(std::string title, int value);
   
