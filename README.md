@@ -76,7 +76,7 @@ For example :
 
 Where "Show graphics" is the string returned to "appDialogFunction" from ofxWinDialog when the user changes the checkbox and "bShowGraphics" is a flag that is changed within ofApp when that string is received.
 
-Set the dialog opening position and size. Refer to the example code for opening position options. Psoition 0, 0 will centre the dialog on the app window.
+Set the dialog opening position and size. Refer to the example code for opening position options. Position 0, 0 will centre the dialog on the app window.
 
 	dialog->SetPosition(0, 0, 400, 600);
 	
