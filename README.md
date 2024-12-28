@@ -1,6 +1,6 @@
 # ofxWinDialog
 
-Create a Microsoft Windows dialog for an Openframeworks application.
+Create Microsoft Windows dialogs for an Openframeworks application.
 
 Can be used together with [ofxWinMenu](https://github.com/leadedge/ofxWinMenu) to create a Windows menu as well as dialogs.
 
