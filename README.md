@@ -8,15 +8,17 @@ ofxWinDialog has been developed using Visual Studio 2022.
 
 ### Setup
 
-1. Add to your Visual Studio project :
-	ofxWinDialog
+1. Add to your Visual Studio project :\
+	<pre>
+		ofxWinDialog
 		src
 			ofxWinDialog.cpp
 			ofxWinDialog.h
 		libs
 			SpoutPanel.cpp
 			SpoutPanel.h
-		
+	</pre>
+
 2. In the Visual Studio project properties :
 
 - Add "ofxWinDialog/src" and "ofxWinDialog/libs" to additional "C/C++/General/Additional Include Directories"
@@ -56,15 +58,15 @@ Register the function for the dialog to use :
 Add controls to the dialog.
 
 Controls can be :
-	- Checkbox
-	- Radio button group
-	- Radio button
-	- Push button
-	- Slider
-	- Edit control
-	- Combo list box
-	- Group
-	- Static text
+- Checkbox
+- Radio button group
+- Radio button
+- Push button
+- Slider
+- Edit control
+- Combo list box
+- Group
+- Static text
 
 For details refer to ofxWinDialog.h and the addon example source.
 
