@@ -69,6 +69,7 @@ Controls can be :
 - Combo list box
 - Group box
 - Static text
+- Hyperlink
 
 For details refer to the ofxWinDialog and example source files.
 
