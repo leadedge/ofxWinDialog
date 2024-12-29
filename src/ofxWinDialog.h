@@ -154,6 +154,8 @@ public:
     std::string GetComboText(std::string title, int item);
     // Get all current control values
     void GetControls();
+    // Get control number
+    int GetControlNumber();
 
     //
     // Set dialog control values

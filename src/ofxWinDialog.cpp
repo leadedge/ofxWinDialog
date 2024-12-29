@@ -490,6 +490,14 @@ void ofxWinDialog::GetControls()
     }
 }
 
+// Get control number
+// Can be used to find whether controls have
+// been created before opening the dialog
+int ofxWinDialog::GetControlNumber()
+{
+    return static_cast<int>(controls.size());
+}
+
 // Restore controls with old values
 // ofApp calls GetControls to get the updated values
 void ofxWinDialog::Restore()
@@ -1134,8 +1142,10 @@ void ofxWinDialog::DialogFunction(std::string title, std::string text, int value
 std::string ofxWinDialog::float2string(float number, int places)
 {
     std::string str = std::to_string(number);
-
-    str = str.substr(0, str.find(".")+places+1);
+    if(places > 0)
+        str = str.substr(0, str.find(".")+places+1);
+    else
+        str = str.substr(0, str.find("."));
     return str;
 }
 
