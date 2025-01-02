@@ -218,6 +218,10 @@ public:
     // All controls if hwndControl is not specified
     void DisableTheme(HWND hwndDialog, HWND hwndControl = NULL);
 
+    // Disable Visual Style themes for a control type
+    // and optional specific control
+    void DisableTheme(std::string type, std::string title="");
+
     //
     // Control variables
     //

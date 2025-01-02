@@ -1,10 +1,18 @@
 //
 // ofxWinDialog.cpp
 //
+// Revisions :
+//      01.01.25 - Correct missing Radio button in Load
+//               - Skip *100 for control values with range > 1000
+//               - SB_LINELEFT / SB_LINERIGHT
+//                 Move 100 units for trackbars with range > 1000 
+//      02.01.25 - Remove disable themes for trackbar
+//               - Add function to disable themes for a control type or a specific control
+//
+//
 #include "ofxWinDialog.h"
 #include <windows.h>
 #include <stdio.h>
-
 
 // Main Windows message procedure that forwards
 // messages to the instance's message handler
@@ -149,7 +157,7 @@ void ofxWinDialog::AddSlider(std::string title,
     ctl control{};
     control.Type = "Slider";
     control.Title = title;
-    control.Index = bShow; // flag to show value to the right
+    control.Index = bShow; // flag to show value text to the right
     control.X=x;
     control.Y=y;
     control.Width=width;
@@ -417,7 +425,11 @@ void ofxWinDialog::SetSlider(std::string title, float value)
             if (controls[i].Title == title) {
                 // Update the Slider value
                 controls[i].SliderVal = value;
-                SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, (int)(value*100.0f));
+                if ((controls[i].Max - controls[i].Min) > 1000.0)
+                    SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, (int)controls[i].SliderVal);
+                else
+                    SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, (int)(value*100.0f));
+
                 InvalidateRect(controls[i].hwndControl, NULL, TRUE);
                 // Slider value text display
                 if (controls[i].Index > 0) {
@@ -473,10 +485,12 @@ void ofxWinDialog::GetControls()
             && controls[i].Type != "Button"
             && controls[i].Type != "OK"
             && controls[i].Type != "CANCEL") {
-            if (controls[i].Type == "Combo")
+            if (controls[i].Type == "Combo") {
                 DialogFunction(controls[i].Title, "", controls[i].Index);
-            else if (controls[i].Type == "Slider")
+            }
+            else if (controls[i].Type == "Slider") {
                 DialogFunction(controls[i].Title, "", (int)(controls[i].SliderVal*100.0f));
+            }
             else if (controls[i].Type == "Edit") {
                 if (m_hDialog) {
                     GetWindowTextA(controls[i].hwndControl, (LPSTR)tmp, MAX_PATH);
@@ -521,7 +535,12 @@ void ofxWinDialog::Refresh()
             }
         }
         if (controls[i].Type == "Slider") {
-            SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, (int)(controls[i].SliderVal*100.0f));
+
+            if ((controls[i].Max - controls[i].Min) > 1000.0)
+                SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, (int)controls[i].SliderVal);
+            else
+                SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, (int)(controls[i].SliderVal*100.0f));
+            
             // Slider value text display
             if (controls[i].Index > 0) {
                 // Slider value text display
@@ -718,7 +737,7 @@ void ofxWinDialog::Load(std::string filename, std::string section)
                     if (tmp[0]) controls[i].Val = atoi(tmp);
                 }
             }
-            else if (controls[i].Type == "Checkbox") {
+            else if (controls[i].Type == "Radio") {
                 if (GetPrivateProfileStringA((LPCSTR)ControlSection.c_str(), (LPCSTR)controls[i].Title.c_str(), NULL, (LPSTR)tmp, MAX_PATH, (LPCSTR)inipath.c_str()) > 0) {
                     if (tmp[0]) controls[i].Val = atoi(tmp);
                 }
@@ -924,15 +943,22 @@ HWND ofxWinDialog::Open(std::string title)
                 ID++;
 
                 // Set slider range and initial position
-                SendMessage(hwndc, TBM_SETRANGE, TRUE, MAKELONG((int)(controls[i].Min*100.0f), (int)(controls[i].Max*100.0f)));
-                SendMessage(hwndc, TBM_SETPOS, TRUE, (int)(controls[i].SliderVal*100.0f));
+                if ((controls[i].Max - controls[i].Min) > 1000.0) {
+                    SendMessage(hwndc, TBM_SETRANGE, TRUE, MAKELONG((int)(controls[i].Min), (int)(controls[i].Max)));
+                    SendMessage(hwndc, TBM_SETPOS, TRUE, (int)(controls[i].SliderVal));
+                }
+                else {
+                    SendMessage(hwndc, TBM_SETRANGE, TRUE, MAKELONG((int)(controls[i].Min*100.0f), (int)(controls[i].Max*100.0f)));
+                    SendMessage(hwndc, TBM_SETPOS, TRUE, (int)(controls[i].SliderVal*100.0f));
+                }
 
                 // Set tick interval
-                if (controls[i].Tick > 0.0f)
-                    SendMessage(hwndc, TBM_SETTICFREQ, (int)(controls[i].Tick*100.0f), 0);
-
-                // Disable visual themes for trackbar
-                DisableTheme(hwnd, hwndc);
+                if (controls[i].Tick > 0.0f) {
+                    if ((controls[i].Max - controls[i].Min) > 1000.0)
+                        SendMessage(hwndc, TBM_SETTICFREQ, (int)(controls[i].Tick), 0);
+                    else
+                        SendMessage(hwndc, TBM_SETTICFREQ, (int)(controls[i].Tick*100.0f), 0);
+                }
 
                 // Slider value text display
                 if (controls[i].Index > 0) {
@@ -1168,6 +1194,25 @@ void ofxWinDialog::DisableTheme(HWND hwndDialog, HWND hwndControl)
     }
 }
 
+// ---------------------------------------------
+// Disable Visual Style themes for a control type
+// and optional specific control
+void ofxWinDialog::DisableTheme(std::string type, std::string title)
+{
+    for (size_t i=0; i<controls.size(); i++) {
+        if (controls[i].Type == type) {
+            if (!title.empty()) {
+                if (controls[i].Title == title) {
+                    SetWindowTheme(controls[i].hwndControl, L"", L"");
+                }
+            }
+            else {
+                SetWindowTheme(controls[i].hwndControl, L"", L"");
+            }
+        }
+    }
+}
+
 
 //
 // Windows message callback function
@@ -1349,18 +1394,26 @@ void ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
                             // Check for direction keys, left/right, up/down
                             // Default trackbar style is Down=Right and Up=Left (CommCtrl.h)
+                            float range = (controls[i].Max - controls[i].Min);
                             if (wParam == SB_LINELEFT) { // Left key
-                                pos = pos - 100;
-                                SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, pos);
+                                // Moves left one unit
+                                // Move 100 units for trackbars with range > 1000, 
+                                if (range > 1000.0) {
+                                    pos = pos - (int)(range/100.0);
+                                    SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, pos);
+                                }
                             }
                             else if(wParam == SB_LINERIGHT) { // Right key
-                                pos = pos + 100;
-                                int max = (int)(controls[i].Max*100.0);
-                                if (pos > max) pos = max;
-                                SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, pos);
+                                if (range > 1000.0) {
+                                    pos = pos + (int)(range/100.0);
+                                    SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, pos);
+                                }
                             }
 
-                            controls[i].SliderVal = (float)pos/100.0f;
+                            if (range > 1000.0)
+                                controls[i].SliderVal = (float)pos;
+                            else
+                                controls[i].SliderVal = (float)pos/100.0f;
 
                             // Slider value text display
                             if (controls[i].hwndSliderVal) {
