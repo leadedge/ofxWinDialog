@@ -172,6 +172,9 @@ public:
     void SetEdit(std::string title, std::string text);
     void SetCombo(std::string title, int item);
 
+    // Reset controls with original values
+    void Reset();
+
     // Restore controls with old values
     void Restore();
 
@@ -220,7 +223,7 @@ public:
 
     // Disable Visual Style themes for a control type
     // and optional specific control
-    void DisableTheme(std::string type, std::string title="");
+    void DisableTheme(std::string type="", std::string title="");
 
     //
     // Control variables
@@ -254,15 +257,17 @@ public:
 
         uint64_t ID = 0LL; // Control ID
         DWORD Style = 0; // Static text and button style
+        bool VisualStyle = true; // Enable or diasble Visual Styles for a control
         HWND hwndControl = NULL;
         HWND hwndType = NULL;
         HWND hwndSlider = NULL;
         HWND hwndSliderVal = NULL; // Static text control to display the value of the slider
     };
 
-    // Controls and old controls
-    std::vector<struct ctl> controls;
-    std::vector<struct ctl> oldcontrols;
+    // Controls
+    std::vector<struct ctl> newcontrols; // Controls for reset
+    std::vector<struct ctl> controls; // Working controls
+    std::vector<struct ctl> oldcontrols; // Controls for restore
 
     WNDCLASSW wndClass={ 0 }; // Dialog window class structure
     std::wstring m_ClassName;

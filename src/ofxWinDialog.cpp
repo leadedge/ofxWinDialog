@@ -8,7 +8,12 @@
 //                 Move 100 units for trackbars with range > 1000 
 //      02.01.25 - Remove disable themes for trackbar
 //               - Add function to disable themes for a control type or a specific control
-//
+//      03.01.25 - Save original controls
+//               - Add "Reset()" function
+//      04.01.25 - newcontrols - refresh slider text entry flags and handles
+//               - DisableTheme - disable Visual Style themes at control creation
+//                 all controls, control type, specific control
+//               - Create full and basic examples
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -429,10 +434,10 @@ void ofxWinDialog::SetSlider(std::string title, float value)
                     SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, (int)controls[i].SliderVal);
                 else
                     SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, (int)(value*100.0f));
-
                 InvalidateRect(controls[i].hwndControl, NULL, TRUE);
+
                 // Slider value text display
-                if (controls[i].Index > 0) {
+                if (controls[i].hwndSliderVal) {
                     char tmp[8]{};
                     if (controls[i].Max >= 100.0f)
                         sprintf_s(tmp, 8, "%.0f", controls[i].SliderVal);
@@ -512,13 +517,20 @@ int ofxWinDialog::GetControlNumber()
     return static_cast<int>(controls.size());
 }
 
-// Restore controls with old values
+// Reset controls with orignalvalues
 // ofApp calls GetControls to get the updated values
+void ofxWinDialog::Reset()
+{
+    // Reset controls
+    controls = newcontrols;
+    // Refresh dialog display
+    Refresh();
+}
+
+// Restore controls with old values
 void ofxWinDialog::Restore()
 {
-    // Restore old controls
     controls = oldcontrols;
-    // Refresh dialog display
     Refresh();
 }
 
@@ -542,8 +554,7 @@ void ofxWinDialog::Refresh()
                 SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, (int)(controls[i].SliderVal*100.0f));
             
             // Slider value text display
-            if (controls[i].Index > 0) {
-                // Slider value text display
+            if (controls[i].hwndSliderVal) {
                 char tmp[8]{};
                 if (controls[i].Max >= 100.0f)
                     sprintf_s(tmp, 8, "%.0f", controls[i].SliderVal);
@@ -569,7 +580,7 @@ void ofxWinDialog::Refresh()
         if (controls[i].Type == "Edit") {
             SetWindowTextA(controls[i].hwndControl, (LPCSTR)controls[i].Text.c_str());
         }
-    }
+     }
 }
 
 // Save controls to an initialization file
@@ -961,6 +972,7 @@ HWND ofxWinDialog::Open(std::string title)
                 }
 
                 // Slider value text display
+                // Index is a flag to show value text to the right
                 if (controls[i].Index > 0) {
                     // Create a static text control to display the value of the slider
                     HWND hwndval = CreateWindowExA(
@@ -978,6 +990,7 @@ HWND ofxWinDialog::Open(std::string title)
                             sprintf_s(tmp, 8, "%.2f", controls[i].SliderVal);
 
                         SetWindowTextA(hwndval, (LPCSTR)tmp);
+                        // hwndSliderVal is only set if Index > 0
                         controls[i].hwndSliderVal = hwndval;
                     }
                 }
@@ -1107,7 +1120,34 @@ HWND ofxWinDialog::Open(std::string title)
         }
     } // end all controls
 
+
+    // Disable Visual Styles if
+    for (size_t i=0; i<controls.size(); i++) {
+        if (!controls[i].VisualStyle) {
+            SetWindowTheme(controls[i].hwndControl, L"", L"");
+        }
+    }
+
+
+    //
     // Save all controls
+    //
+
+    // Original controls for reset
+    if (oldcontrols.empty()) {
+        newcontrols = controls;
+    }
+    else {
+        // Update window handles for a new dialog
+        for (size_t i=0; i<controls.size(); i++) {
+            // Control handles
+            newcontrols[i].hwndControl = controls[i].hwndControl;
+            // Slider value text display
+            newcontrols[i].hwndSliderVal = controls[i].hwndSliderVal;
+        }
+    }
+
+    // Old controls for restore (Cancel)
     oldcontrols = controls;
 
     // Custom dialog font
@@ -1178,6 +1218,7 @@ std::string ofxWinDialog::float2string(float number, int places)
 // ---------------------------------------------
 // Disable Visual Style themes for dialog controls
 // if using common controls version 6.0.0.0
+// after dialog and control creation.
 // All controls if hwndControl is not specified
 void ofxWinDialog::DisableTheme(HWND hwndDialog, HWND hwndControl)
 {
@@ -1194,21 +1235,28 @@ void ofxWinDialog::DisableTheme(HWND hwndDialog, HWND hwndControl)
     }
 }
 
-// ---------------------------------------------
-// Disable Visual Style themes for a control type
-// and optional specific control
+// -----------------------------------------------
+// Disable Visual Style themes at control creation
+//    o all controls
+//    o a control type
+//    o a specific control
 void ofxWinDialog::DisableTheme(std::string type, std::string title)
 {
     for (size_t i=0; i<controls.size(); i++) {
-        if (controls[i].Type == type) {
-            if (!title.empty()) {
-                if (controls[i].Title == title) {
-                    SetWindowTheme(controls[i].hwndControl, L"", L"");
+        if (!type.empty()) {
+            if (controls[i].Type == type) {
+                if (!title.empty()) {
+                    if (controls[i].Title == title) {
+                        controls[i].VisualStyle = false;
+                    }
+                }
+                else {
+                    controls[i].VisualStyle = false;
                 }
             }
-            else {
-                SetWindowTheme(controls[i].hwndControl, L"", L"");
-            }
+        }
+        else {
+            controls[i].VisualStyle = false;
         }
     }
 }
