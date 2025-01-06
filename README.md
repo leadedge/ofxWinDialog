@@ -98,11 +98,11 @@ The Close() function sends a "WM_DESTROY" message to the callback function, wher
 
 ### SpoutMessageBox
 
-The example includes a dialog accessed from a "MessageBox" button in the "Help" dialog. This shows the use of "SpoutMessageBox", an enhanced Windows MessageBox using [TaskDialogIndirect](https://learn.microsoft.com/en-us/windows/win32/api/commctrl/nf-commctrl-taskdialogindirect) that includes many of the features of ofxWinDialog such as text entry, combo box and multiple buttons. Often this is sufficient instead of creating a dialog for the same purpose.
+The full example includes a dialog accessed from a "MessageBox" button in the "Help" dialog. This shows the use of "SpoutMessageBox", an enhanced Windows MessageBox using [TaskDialogIndirect](https://learn.microsoft.com/en-us/windows/win32/api/commctrl/nf-commctrl-taskdialogindirect) that includes many of the features of ofxWinDialog such as text entry, combo box and multiple buttons. Often this is sufficient instead of creating a dialog for the same purpose.
 
 ### Binaries
 
-An executable binary is included in the example folder to illustrate the function of ofxWinDialog before building the project.
+An executable binary is included in the 'example-full\bin' folder to illustrate the function of ofxWinDialog before building the project.
 
 ### Copyright
 
