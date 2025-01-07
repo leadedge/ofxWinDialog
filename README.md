@@ -27,12 +27,12 @@ ofxWinDialog has been developed using Visual Studio 2022.
 
 - Add #include "ofxWinDialog.h" to the ofApp header file
 
-### Example
+### Examples
 
 Using the Openframeworks project generator, create a new project, include ofxWinDialog as an addon and generate the project.
 
-- Copy and replace the source files from "ofxWinDialog/example/src" to the project "src" folder.
-- Copy all files from "ofxWinDialog/example/bin/data" to the "bin/data" folder.
+- Copy and replace the source files from example-basic or example-full "src" to the project "src" folder.
+- Copy all files from the example "bin/data" to the project "bin/data" folder.
 - Open the project, re-scan and and re-build.
 
 ### Using ofxWinDialog
@@ -98,11 +98,11 @@ The Close() function sends a "WM_DESTROY" message to the callback function, wher
 
 ### SpoutMessageBox
 
-The example includes a dialog accessed from a "MessageBox" button in the "Help" dialog. This shows the use of "SpoutMessageBox", an enhanced Windows MessageBox using [TaskDialogIndirect](https://learn.microsoft.com/en-us/windows/win32/api/commctrl/nf-commctrl-taskdialogindirect) that includes many of the features of ofxWinDialog such as text entry, combo box and multiple buttons. Often this is sufficient instead of creating a dialog for the same purpose.
+The full example includes a dialog accessed from a "MessageBox" button in the "Help" dialog. This shows the use of "SpoutMessageBox", an enhanced Windows MessageBox using [TaskDialogIndirect](https://learn.microsoft.com/en-us/windows/win32/api/commctrl/nf-commctrl-taskdialogindirect) that includes many of the features of ofxWinDialog such as text entry, combo box and multiple buttons. Often this is sufficient instead of creating a dialog for the same purpose.
 
 ### Binaries
 
-An executable binary is included in the example folder to illustrate the function of ofxWinDialog before building the project.
+An executable binary is included in the 'example-full\bin' folder to illustrate the function of ofxWinDialog before building the project.
 
 ### Copyright
 
