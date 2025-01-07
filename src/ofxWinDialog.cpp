@@ -17,6 +17,8 @@
 //      07.01.25 - Main window create without WS_VISIBLE
 //                 ShowWindow when all controls have been created
 //                 Add GetIcon
+//                 Add WM_KEYDOWN and WM_KEYUP to inform ofApp of 
+//                 key press and release when the dialog has focus
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -861,10 +863,8 @@ HWND ofxWinDialog::Open(std::string title)
 
     // Dialog window icon if specified
     if (m_hIcon) {
-        SetClassLongPtrA(hwnd, GCLP_HICON, (LONG_PTR)m_hIcon);
-        // LJ DEBUG
-        // SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)m_hIcon);
-        // SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)m_hIcon);
+        SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)m_hIcon);
+        SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)m_hIcon);
     }
 
     // Clear all window handles for repeat open of the same dialog
@@ -1502,6 +1502,17 @@ void ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             }
             break;
 
+
+        // Pass key events on to ofApp
+        case WM_KEYDOWN:
+            DialogFunction("WM_KEYDOWN", "", (int)wParam);
+            break;
+
+        case WM_KEYUP:
+            DialogFunction("WM_KEYUP", "", (int)wParam);
+            break;
+
+
         case WM_CLOSE:
         case WM_DESTROY:
             DestroyWindow(hwnd);
@@ -1528,7 +1539,6 @@ LRESULT CALLBACK GetMsgProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     LPMSG lpMsg = (LPMSG)lParam;
     if (nCode >= 0 && PM_REMOVE == wParam) {
-        // Only translate key events
         if ((lpMsg->message >= WM_KEYFIRST && lpMsg->message <= WM_KEYLAST)) {
             ofxWinDialog* pDlg = reinterpret_cast<ofxWinDialog*>(GetWindowLongPtr(hwndDialog, GWLP_USERDATA));
             if (pDlg && pDlg->m_hDialog) {
