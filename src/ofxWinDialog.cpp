@@ -14,6 +14,9 @@
 //               - DisableTheme - disable Visual Style themes at control creation
 //                 all controls, control type, specific control
 //               - Create full and basic examples
+//      07.01.25 - Main window create without WS_VISIBLE
+//                 ShowWindow when all controls have been created
+//                 Add GetIcon
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -64,7 +67,7 @@ ofxWinDialog::ofxWinDialog(ofApp* app, HINSTANCE hInstance, HWND hWnd, std::wstr
         return;
     }
 
-    // Create the message hook to endable the tab key
+    // Create the message hook to enable the tab key
     if (!hMsgHook) {
         hMsgHook = SetWindowsHookEx(WH_GETMESSAGE, GetMsgProc, NULL, GetCurrentThreadId());
     }
@@ -761,10 +764,16 @@ void ofxWinDialog::Load(std::string filename, std::string section)
 
 }
 
-// Dialog window icon
+// Set dialog window icon
 void ofxWinDialog::SetIcon(HICON hIcon)
 {
     m_hIcon = hIcon;
+}
+
+// Get dialog window icon handle if set
+HICON ofxWinDialog::GetIcon()
+{
+    return m_hIcon;
 }
 
 // Dialog position and size are set before opening the window
@@ -822,8 +831,9 @@ HWND ofxWinDialog::Open(std::string title)
 
     // No minimize, maximize or menu
     // WS_CAPTION | WS_SYSMENU gives a close button and icon
+    // No WS_VISIBLE - ShowWindow when all controls have been created
     HWND hwnd = CreateWindowW(m_ClassName.c_str(), wtitle,
-        WS_CAPTION | WS_VISIBLE | WS_OVERLAPPED | WS_SYSMENU,
+        WS_CAPTION | WS_OVERLAPPED | WS_SYSMENU,
         xpos, ypos, dialogWidth, dialogHeight,
         m_hwnd,      // Parent window
         NULL,        // No menu
@@ -851,8 +861,10 @@ HWND ofxWinDialog::Open(std::string title)
 
     // Dialog window icon if specified
     if (m_hIcon) {
-        SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)m_hIcon);
-        SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)m_hIcon);
+        SetClassLongPtrA(hwnd, GCLP_HICON, (LONG_PTR)m_hIcon);
+        // LJ DEBUG
+        // SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)m_hIcon);
+        // SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)m_hIcon);
     }
 
     // Clear all window handles for repeat open of the same dialog
@@ -1121,13 +1133,15 @@ HWND ofxWinDialog::Open(std::string title)
     } // end all controls
 
 
-    // Disable Visual Styles if
+    
+    // Disable Visual Styles if flag is set
+    // DisableTheme(std::string type, std::string title)
     for (size_t i=0; i<controls.size(); i++) {
         if (!controls[i].VisualStyle) {
             SetWindowTheme(controls[i].hwndControl, L"", L"");
         }
     }
-
+    
 
     //
     // Save all controls

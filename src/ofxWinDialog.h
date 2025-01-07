@@ -189,8 +189,11 @@ public:
     // ofApp calls GetControls to get the updated values
     void Load(std::string filename, std::string section="");
 
-    // Icon for the dialog window
+    // Set icon for the dialog window
     void SetIcon(HICON hIcon);
+
+    // Get dialog window icon handle if set
+    HICON GetIcon();
 
     // Set a custom font
     // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-logfonta
