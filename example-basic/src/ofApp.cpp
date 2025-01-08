@@ -22,6 +22,7 @@
 		o Push buttons
 		o Restore controls
 		o Reset controls
+		o Key events
 		o Dialog open position and size
 
 	Full example :
@@ -108,7 +109,7 @@ void ofApp::setup() {
 	CreateAppDialog();
 
 	// The dialog is opened/closed by right mouse click.
-	// hwndDialog = dialog->Open("Settings");
+	hwndDialog = dialog->Open("Settings");
 
 	// For the graphics
 	counter = 0;
@@ -267,25 +268,24 @@ void ofApp::CreateAppDialog()
 	// Visual Styles for Version 6 common controls change the 
 	// appearance of dialog controls compared to the Classic look. 
 	// Visual Styles can be disabled if the classic appearance is preferable.
+	// For example, slider tick marks are more visible if Visual Styles are disabled.
 	//
-	// After the dialog has been created and the window and control handles are known
+	// After dialog open and the window and control handles are known
 	//     void DisableTheme(HWND hwndDialog, HWND hwndControl = NULL);
 	//
-	// At creation of controls
+	// Before dialog open
 	//		void DisableTheme(std::string type, std::string title="");
 	//
 	// For example :
 	// An individal control
-	// Tick marks are more visible if Visual Styles are disabled.
 	//     dialog->DisableTheme("Slider", "Alpha");
 	//
-	// All slider controls
+	// All controls of one type
+	// Slider, Button, Checkbox, Radio, Combo, Edit etc.
 	dialog->DisableTheme("Slider");
-	// Also Button, Checkbox, Radio, Combo, Edit etc.
 	//
 	// All controls
 	//     dialog->DisableTheme();
-
 
 	//
 	// Position
@@ -323,6 +323,26 @@ void ofApp::ofxWinDialogFunction(std::string title, std::string text, int value)
 		// For multiple dialogs "value" is returned
 		// as the handle to the dialog that closed
 		hwndDialog = nullptr;
+		return;
+	}
+	
+	//
+	// Dialog key events
+	// Can be used to detect keys when the dialog has focus
+	// in place of keyPressed/keyReleased
+	// "value" contains the key code
+	//
+	if (title == "WM_KEYUP") {
+		// For example 'C' key to close the dialog
+		if (value == 67) {
+			dialog->Close();
+		}
+		return;
+	}
+
+	if (title == "WM_KEYDOWN") {
+		// Will repeat - use as required
+		return;
 	}
 
 	//

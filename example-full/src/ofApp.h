@@ -37,7 +37,7 @@ class ofApp : public ofBaseApp {
 		void update();
 		void draw();
 
-		void keyPressed(int key); // Traps escape key if exit disabled
+		void keyPressed(int key);
 		void keyReleased(int key);
 		void mouseMoved(int x, int y);
 		void mouseDragged(int x, int y, int button);

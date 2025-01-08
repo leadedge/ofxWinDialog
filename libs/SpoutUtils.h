@@ -131,7 +131,7 @@ namespace spoututils {
 	std::string SPOUT_DLLEXP GetExeVersion(const char* path);
 
 	// Get executable or dll path
-	std::string SPOUT_DLLEXP GetExePath();
+	std::string SPOUT_DLLEXP GetExePath(bool bFull = false);
 
 	// Get executable or dll name
 	std::string SPOUT_DLLEXP GetExeName();

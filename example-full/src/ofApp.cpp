@@ -82,6 +82,10 @@ void ofApp::setup() {
 	HICON hIcon = reinterpret_cast<HICON>(LoadImageA(nullptr, icopath.c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE));
 	dialog->SetIcon(hIcon);
 
+	// Set the main window icon as well
+	SendMessage(ofGetWin32Window(), WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+	SendMessage(ofGetWin32Window(), WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
+
 	// Custom font (option)
 	// The font can be any defined in Windows\Fonts
 	//    name   - "Tahoma", "Ms Shell Dlg", "Trebuchet", "Ms Shell Dlg" etc.
@@ -417,6 +421,26 @@ void ofApp::ofxWinDialogFunction(std::string title, std::string text, int value)
 		// For multiple dialogs, "value" is returned
 		// as the handle to the dialog that closed
 		hwndDialog = nullptr;
+		return;
+	}
+
+	//
+	// Dialog key events
+	// Can be used to detect keys when the dialog has focus
+	// in place of keyPressed/keyReleased
+	// "value" contains the key code
+	//
+	if (title == "WM_KEYUP") {
+		// For example 'C' key to close the dialog
+		if (value == 67) {
+			dialog->Close();
+		}
+		return;
+	}
+
+	if (title == "WM_KEYDOWN") {
+		// Will repeat - use as required
+		return;
 	}
 
 	//
@@ -1016,7 +1040,7 @@ void ofApp::ofxWinDialogFunction3(std::string title, std::string text, int value
 		str += "above the message and is useful to draw attention to the content\n";
 		str += "Use the long form of the MessageBox and include an instruction\n\n";
 		str += "spoutMessageBox(NULL, \"Message\", \"Caption\", MB_OK, \"Instruction\")\n\n";
-		SpoutMessageBox(NULL, str.c_str(), "Main instruction", MB_TOPMOST | MB_ICONINFORMATION | MB_OK, "Instruction");
+		SpoutMessageBox(NULL, str.c_str(), "Main instruction", MB_TOPMOST | MB_OK, "Instruction");
 	}
 
 	//
@@ -1217,7 +1241,7 @@ void ofApp::ofxWinDialogFunction3(std::string title, std::string text, int value
 		str += "to indicate the window to be associated with the open clipboard.\n";
 		str += "It can be NULL and the open clipboard is associated with the current task.\n\n";
 		str += "OK to copy the source of this message to the clipboard, CANCEL to skip.\n";
-		if (SpoutMessageBox(NULL, str.c_str(), "Clipboard", MB_TOPMOST | MB_ICONINFORMATION | MB_OKCANCEL) == IDOK) {
+		if (SpoutMessageBox(NULL, str.c_str(), "Clipboard", MB_TOPMOST | MB_OKCANCEL) == IDOK) {
 			CopyToClipBoard(NULL, str.c_str());
 			SpoutMessageBox("Text copied to the clipboard\nCheck by using a text editor and \"Ctrl-V\" or \"Edit > Paste\"");
 		}
@@ -1325,6 +1349,9 @@ void ofApp::draw() {
 
 } // end Draw
 
+
+// When the main dialog has focus, WM_KEYUP/WM_KEYDOWN messages
+// are passed to the callback procedure "ofxWinDialogFunction"
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key) {

@@ -213,6 +213,7 @@
 		06.10.24 - OpenSpoutConsole, EnableSpoutLog - add optional title argument
 		22.12.24 - Remove MB_USERBUTTON. Use TDbuttonID.size() instead.
 				   SpoutMessageBoxModeless bool instead of void
+		07.01.24 - GetExePath - add option for full path with executable name
 
 */
 
@@ -341,15 +342,21 @@ namespace spoututils {
 	// ---------------------------------------------------------
 	// Function: GetExePath()
 	// Get executable or dll path
+	//    bFull
+	//	    true  - full path with executable name
+	//	    false - path without executable name (default)
 	//
-	std::string GetExePath()
+	std::string GetExePath(bool bFull)
 	{
 		char path[MAX_PATH]{};
 		// exe or dll
 		GetModuleFileNameA(GetCurrentModule(), path, MAX_PATH);
 		std::string exepath = path;
+		
 		// Remove name
-		RemoveName(exepath);
+		if(!bFull)
+			RemoveName(exepath);
+
 		return exepath;
 	}
 
