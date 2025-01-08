@@ -19,6 +19,8 @@
 //                 Add GetIcon
 //                 Add WM_KEYDOWN and WM_KEYUP to inform ofApp of 
 //                 key press and release when the dialog has focus
+//      08.01.25 - Move Add WM_KEYDOWN and WM_KEYUP to GetMsgProc
+//                 Correct trackbar SB_LINELEFT / SB_LINERIGHT for range
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -1334,6 +1336,8 @@ void ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
          case WM_COMMAND:
 
+             // printf("WM_COMMAND\n");
+
              // Handle control events and inform the app
              if (controls.size() > 0) {
 
@@ -1434,7 +1438,6 @@ void ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                              }
                          } // end Push button
                      } // end all button controls
-
                      // IDOK and IDCANCEL are not used
                      // OK and Cancel buttons are handled by ofApp
                  }
@@ -1464,10 +1467,22 @@ void ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                                     pos = pos - (int)(range/100.0);
                                     SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, pos);
                                 }
+                                else if(range >= 100.0) {
+                                    SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, pos-100);
+                                }
+                                else {
+                                    SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, pos);
+                                }
                             }
                             else if(wParam == SB_LINERIGHT) { // Right key
                                 if (range > 1000.0) {
                                     pos = pos + (int)(range/100.0);
+                                    SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, pos);
+                                }
+                                else if (range >= 100.0) {
+                                    SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, pos+100);
+                                }
+                                else {
                                     SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, pos);
                                 }
                             }
@@ -1502,17 +1517,6 @@ void ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             }
             break;
 
-
-        // Pass key events on to ofApp
-        case WM_KEYDOWN:
-            DialogFunction("WM_KEYDOWN", "", (int)wParam);
-            break;
-
-        case WM_KEYUP:
-            DialogFunction("WM_KEYUP", "", (int)wParam);
-            break;
-
-
         case WM_CLOSE:
         case WM_DESTROY:
             DestroyWindow(hwnd);
@@ -1542,6 +1546,15 @@ LRESULT CALLBACK GetMsgProc(int nCode, WPARAM wParam, LPARAM lParam)
         if ((lpMsg->message >= WM_KEYFIRST && lpMsg->message <= WM_KEYLAST)) {
             ofxWinDialog* pDlg = reinterpret_cast<ofxWinDialog*>(GetWindowLongPtr(hwndDialog, GWLP_USERDATA));
             if (pDlg && pDlg->m_hDialog) {
+
+                // Pass key up and down on to ofApp
+                if (lpMsg->message == WM_KEYUP) {
+                    pDlg->DialogFunction("WM_KEYUP", "", (int)lpMsg->wParam);
+                }
+                if (lpMsg->message == WM_KEYDOWN) {
+                    pDlg->DialogFunction("WM_KEYDOWN", "", (int)lpMsg->wParam);
+                }
+
                 if (IsDialogMessage(pDlg->m_hDialog, lpMsg)) {
                     // The value returned from this hookproc is ignored,
                     // and cannot be used to tell Windows the message has been handled.
