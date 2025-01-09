@@ -21,6 +21,8 @@
 //                 key press and release when the dialog has focus
 //      08.01.25 - Move Add WM_KEYDOWN and WM_KEYUP to GetMsgProc
 //                 Correct trackbar SB_LINELEFT / SB_LINERIGHT for range
+//      09.01.25 - Add style to AddHyperlink
+//                 Close dialog for hyperlink
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -277,14 +279,14 @@ void ofxWinDialog::AddText(std::string text, int x, int y, int width, int height
 // Hyperlink
 // Title is the text displayed, control text is the action taken
 // If the text is empty, ofApp is notified when the hyperlink is clicked
-void ofxWinDialog::AddHyperlink(std::string title, std::string text, int x, int y, int width, int height)
+void ofxWinDialog::AddHyperlink(std::string title, std::string text, int x, int y, int width, int height, DWORD dwStyle)
 {
     ctl control{};
     control.Type = "Static";
     control.Title = title; // The title that appears in the dialog
     control.Text  = text; // The action to be taken.
     // Enable notifications for action and owner draw for text colour
-    control.Style = SS_NOTIFY | SS_OWNERDRAW;
+    control.Style = SS_NOTIFY | SS_OWNERDRAW | dwStyle;
     control.Index = 1; // To identify a hyperlink from static text
     control.X=x;
     control.Y=y;
@@ -765,6 +767,8 @@ void ofxWinDialog::Load(std::string filename, std::string section)
 
     // Refresh the dialog with the new controls
     Refresh();
+    // Return new values to ofApp
+    GetControls();
 
 }
 
@@ -1336,8 +1340,6 @@ void ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
          case WM_COMMAND:
 
-             // printf("WM_COMMAND\n");
-
              // Handle control events and inform the app
              if (controls.size() > 0) {
 
@@ -1348,6 +1350,8 @@ void ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                              if(!controls[i].Text.empty()) {
                                 // Title is the text displayed, control text is the action taken
                                 ShellExecuteA(hwnd, "open", controls[i].Text.c_str(), NULL, NULL, SW_SHOWNORMAL);
+                                // Close the dialog
+                                SendMessage(hwnd, WM_CLOSE, 0, 0);
                             }
                          }
                      }

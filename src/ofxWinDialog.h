@@ -134,7 +134,11 @@ public:
     // Hyperlink
     // Title is displayed, text is the action taken
     // If the text is empty, ofApp is notified when the hyperlink is clicked
-    void AddHyperlink(std::string title, std::string text, int x, int y, int width, int height);
+    // Style can be :
+    //  SS_LEFT   - left aligned
+    //	SS_CENTER - centered
+    //	SS_RIGHT  - right aligned
+    void AddHyperlink(std::string title, std::string text, int x, int y, int width, int height, DWORD dwStyle = 0);
     
     //
     // Get dialog control values
@@ -283,12 +287,12 @@ public:
     HICON m_hIcon = nullptr; // Dialog icon
     HWND hwndOKButton = NULL;  // OK Button
     HWND hwndCancelButton = NULL;  // Cancel Button
+
     // Dialog position and size
     int dialogX = 0;
     int dialogY = 0;
     int dialogWidth = 0;
     int dialogHeight = 0;
-
 
     // Variables for optional font
     std::string fontname;
