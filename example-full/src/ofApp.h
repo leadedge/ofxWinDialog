@@ -60,7 +60,7 @@ class ofApp : public ofBaseApp {
 		HWND hwndDialog = NULL; // Dialog window
 		void CreateAppDialog(); // Create the dialog controls
 		// Callback function for ofxWinDialog to return control values
-		void ofxWinDialogFunction(string title, std::string, int value);
+		void ofxWinDialogFunction(std::string title, std::string text, int value);
 
 		//
 		// Second dialog (Help)
@@ -68,7 +68,7 @@ class ofApp : public ofBaseApp {
 		ofxWinDialog* dialog2; // Second dialog object
 		HWND hwndDialog2 = NULL; // Second dialog window
 		void CreateAppDialog2(); // Create second dialog controls
-		void ofxWinDialogFunction2(string title, std::string, int value);
+		void ofxWinDialogFunction2(std::string title, std::string text, int value);
 
 		//
 		// Third dialog (SpoutMessageBox)
@@ -76,7 +76,7 @@ class ofApp : public ofBaseApp {
 		ofxWinDialog* dialog3;
 		HWND hwndDialog3 = NULL;
 		void CreateAppDialog3();
-		void ofxWinDialogFunction3(string title, std::string, int value);
+		void ofxWinDialogFunction3(std::string title, std::string text, int value);
 
 		//
 		// Variables for the example

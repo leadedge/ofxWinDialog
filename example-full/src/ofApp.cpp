@@ -184,7 +184,7 @@ void ofApp::CreateAppDialog()
 	//
 	// Hyperlink
 	//
-	// This is static text but modified with the SS_NOTIFY style so that
+	// This is static text modified with the SS_NOTIFY style so that
 	// it is detected by the event handler.
 	//
 	// The first argument, the title, is displayed blue in the dialog.
@@ -552,7 +552,7 @@ void ofApp::ofxWinDialogFunction(std::string title, std::string text, int value)
 
 	// Cancel
 	if (title == "Cancel button") {
-		// Reset all controls with old values
+		// Restore all controls with old values
 		dialog->Restore();
 		// Return values to ofApp
 		dialog->GetControls();
