@@ -191,7 +191,7 @@ public:
     // Load controls from an initialization file
     // The section name can be used to retrieve specific controls
     // ofApp calls GetControls to get the updated values
-    void Load(std::string filename, std::string section="");
+    bool Load(std::string filename, std::string section="");
 
     // Set icon for the dialog window
     void SetIcon(HICON hIcon);

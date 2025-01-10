@@ -23,6 +23,9 @@
 //                 Correct trackbar SB_LINELEFT / SB_LINERIGHT for range
 //      09.01.25 - Add style to AddHyperlink
 //                 Close dialog for hyperlink
+//      10.01.25 - Load - set newcontrols first if Load is before Open
+//                 Close dialog for Reset
+//                 Change Load from void to bool
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -528,12 +531,12 @@ int ofxWinDialog::GetControlNumber()
 
 // Reset controls with orignalvalues
 // ofApp calls GetControls to get the updated values
+// and closes the dialog.
 void ofxWinDialog::Reset()
 {
     // Reset controls
-    controls = newcontrols;
-    // Refresh dialog display
-    Refresh();
+    if(!newcontrols.empty())
+        controls = newcontrols;
 }
 
 // Restore controls with old values
@@ -674,7 +677,7 @@ void ofxWinDialog::Save(std::string filename, bool bOverWrite)
 
 // Load controls from an initialization file
 // ofApp calls GetControls to get the updated values
-void ofxWinDialog::Load(std::string filename, std::string section)
+bool ofxWinDialog::Load(std::string filename, std::string section)
 {
     char tmp[MAX_PATH]{};
     std::string inipath="";
@@ -693,9 +696,8 @@ void ofxWinDialog::Load(std::string filename, std::string section)
         }
         else {
             // Extension not "ini"
-            sprintf_s(tmp, "%s is not an initialization file\n", filename.c_str());
-            MessageBoxA(NULL, tmp, "Warning", MB_OK | MB_TOPMOST);
-            return;
+            printf("ofxWinDialog::Load\n%s is not an initialization file\n", filename.c_str());
+            return false;
         }
     }
 
@@ -714,10 +716,13 @@ void ofxWinDialog::Load(std::string filename, std::string section)
 
     // Check that the file exists in case an extension was added
     if (_access(inipath.c_str(), 0) == -1) {
-        sprintf_s(tmp, "Initialization file \"%s\" not found.", inipath.c_str());
-        MessageBoxA(NULL, tmp, "Warning", MB_OK | MB_TOPMOST);
-        return;
+        printf("ofxWinDialog::Load\nInitialization file \"%s\" not found.", inipath.c_str());
+        return false;
     }
+
+    // Set newcontrols first if Load is before Open
+    if (newcontrols.empty() && !controls.empty())
+        newcontrols = controls;
 
     // Load control values
     // Only those saved in the ini file are changed
@@ -769,6 +774,8 @@ void ofxWinDialog::Load(std::string filename, std::string section)
     Refresh();
     // Return new values to ofApp
     GetControls();
+
+    return true;
 
 }
 
@@ -1154,7 +1161,7 @@ HWND ofxWinDialog::Open(std::string title)
     //
 
     // Original controls for reset
-    if (oldcontrols.empty()) {
+    if (newcontrols.empty()) {
         newcontrols = controls;
     }
     else {
