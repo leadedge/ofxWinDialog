@@ -26,6 +26,8 @@
 //      10.01.25 - Load - set newcontrols first if Load is before Open
 //                 Close dialog for Reset
 //                 Change Load from void to bool
+//      11.01.25 - Reset newcontrols ID in Open for new dialog
+//                 Remove GetControls() from load. Called by ofApp after Load.
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -537,6 +539,7 @@ void ofxWinDialog::Reset()
     // Reset controls
     if(!newcontrols.empty())
         controls = newcontrols;
+    Refresh();
 }
 
 // Restore controls with old values
@@ -721,6 +724,7 @@ bool ofxWinDialog::Load(std::string filename, std::string section)
     }
 
     // Set newcontrols first if Load is before Open
+    // hwnd and ID are not set
     if (newcontrols.empty() && !controls.empty())
         newcontrols = controls;
 
@@ -772,8 +776,6 @@ bool ofxWinDialog::Load(std::string filename, std::string section)
 
     // Refresh the dialog with the new controls
     Refresh();
-    // Return new values to ofApp
-    GetControls();
 
     return true;
 
@@ -1169,6 +1171,8 @@ HWND ofxWinDialog::Open(std::string title)
         for (size_t i=0; i<controls.size(); i++) {
             // Control handles
             newcontrols[i].hwndControl = controls[i].hwndControl;
+            // Control ID
+            newcontrols[i].ID = controls[i].ID;
             // Slider value text display
             newcontrols[i].hwndSliderVal = controls[i].hwndSliderVal;
         }
