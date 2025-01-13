@@ -1,6 +1,6 @@
 /*
 
-	ofxWinDialog example
+	ofxWinDialog example-full
 
 	Copyright (C) 2025 Lynn Jarvis.
 

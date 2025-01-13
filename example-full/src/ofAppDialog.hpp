@@ -2,7 +2,7 @@
 
 	ofAppDialog.cpp
 
-	ofApp Dialog functions for the ofxWinDialog example
+	ofApp Dialog functions for the ofxWinDialog full example
 	In a separate file to avoid complication of ofApp code
 
 	This file shows detail of how to Create dialogs and to 

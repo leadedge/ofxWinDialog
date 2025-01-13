@@ -2,7 +2,7 @@
 
 	ofApp.cpp
 
-	ofxWinDialog example
+	ofxWinDialog example-full
 
 	Extended example of using the ofxWinDialog addon to create
 	Windows style dialogs for an Openframeworks application.
