@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include "ofApp.h"
+
 //
 // ================= DIALOG 1 ===================
 //
@@ -145,14 +147,34 @@ void ofApp::CreateAppDialog()
 	// Combo box
 	//
 	// Prepare items for the combo list box
-	//
-	comboItems.push_back("Tahoma");  // Item 0
-	comboItems.push_back("Verdana"); // Item 1 etc
-	comboItems.push_back("Georgia");
-	comboItems.push_back("Trebuchet");
-	comboItems.push_back("Jokerman");
-	comboItems.push_back("Staccato");
+	// Test for successful load from Windows/Fonts
+	if (tahoma.isLoaded()) {
+		comboItems.push_back("Tahoma");  // Item 0
+		comboFonts.push_back(tahoma);
+	}
+	if (verdana.isLoaded()) {
+		comboItems.push_back("Verdana"); // Item 1 etc
+		comboFonts.push_back(verdana);
+	}
+	if (georgia.isLoaded()) {
+		comboItems.push_back("Georgia");
+		comboFonts.push_back(georgia);
+	}
+	if (trebuchet.isLoaded()) {
+		comboItems.push_back("Trebuchet");
+		comboFonts.push_back(trebuchet);
+	}
+	if (jokerman.isLoaded()) {
+		comboItems.push_back("Jokerman");
+		comboFonts.push_back(jokerman);
+	}
+	if (staccato.isLoaded()) {
+		comboItems.push_back("Staccato");
+		comboFonts.push_back(staccato);
+	}
 	fontNumber = 0; // starting index 0 (Tahoma)
+	comboFont = comboFonts[0]; // starting font
+
 	dialog->AddCombo("Combo 1", 90, ypos, 200, 400, comboItems, 0);
 	// Label for the combo box (2 pixels down to centre on the control)
 	ypos += 2;
@@ -360,6 +382,7 @@ void ofApp::ofxWinDialogFunction(std::string title, std::string text, int value)
 	//
 	if (title == "Combo 1") {
 		fontNumber = value;
+		comboFont = comboFonts[value]; // the selected font
 	}
 
 	// Edit control

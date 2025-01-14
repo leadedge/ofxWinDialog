@@ -63,8 +63,8 @@ void ofApp::setup() {
 	// Set the app name on the title bar
 	ofSetWindowTitle("ofxWinDialog basic example");
 
-	// Font for general use
-	myFont.load("fonts/verdana.ttf", 14);
+	// Font for general use from the windows\fonts folder
+	LoadWindowsFont(myFont, "verdana.ttf", 14);
 
 	// An image for the example window
 	myImage.load("lighthouse.jpg");
@@ -547,3 +547,18 @@ void ofApp::dragEvent(ofDragInfo dragInfo){
 
 }
 
+
+//--------------------------------------------------------------
+// Load a truetype font from Windows/Fonts
+bool ofApp::LoadWindowsFont(ofTrueTypeFont& font, std::string fontname, int size)
+{
+	char fontpath[MAX_PATH]{};
+	HRESULT hr = SHGetFolderPathA(NULL, CSIDL_FONTS, NULL, 0, fontpath);
+	if (SUCCEEDED(hr)) {
+		std::string filepath = std::string(fontpath) + "\\" + fontname;
+		if (_access(filepath.c_str(), 0) != -1) {
+			return font.load(filepath, size);
+		}
+	}
+	return false;
+}

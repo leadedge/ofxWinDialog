@@ -28,6 +28,7 @@
 
 #include "ofMain.h"
 #include "ofxWinDialog.h" // Dialog addon
+#include <shlobj.h> // For SHGetFolderPath
 
 class ofApp : public ofBaseApp {
 
@@ -99,7 +100,7 @@ class ofApp : public ofBaseApp {
 		int blue = 0;
 		int alpha = 255;
 
-		// Items for the combo list box
+		// Font name strings for the combo list box
 		std::vector<std::string> comboItems;
 
 		// Fonts selected by the combo box
@@ -109,9 +110,17 @@ class ofApp : public ofBaseApp {
 		ofTrueTypeFont trebuchet;
 		ofTrueTypeFont jokerman;
 		ofTrueTypeFont staccato;
-		int fontNumber = 0; // font number selected
+
+		std::vector<ofTrueTypeFont> comboFonts; // fonts
+		int fontNumber = 0; // item number selected
+		ofTrueTypeFont comboFont; // font selected
 
 		// Edit text control
 		std::string fontText; // Text for example font
+
+		// Load a truetype font from Windows/Fonts
+		bool LoadWindowsFont(ofTrueTypeFont& font, std::string fontname, int size);
+
+
 
 };

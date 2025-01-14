@@ -28,6 +28,7 @@
 
 #include "ofMain.h"
 #include "ofxWinDialog.h" // Dialog addon
+#include <shlobj.h> // For SHGetFolderPath
 
 class ofApp : public ofBaseApp {
 
@@ -85,5 +86,9 @@ class ofApp : public ofBaseApp {
 
 		// Edit text control
 		std::string fontText; // Text for example font
+
+		// Load a truetype font from Windows/Fonts
+		bool LoadWindowsFont(ofTrueTypeFont& font, std::string fontname, int size);
+
 
 };

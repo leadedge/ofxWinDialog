@@ -56,16 +56,16 @@ void ofApp::setup() {
 	 // Set the app name on the title bar
 	ofSetWindowTitle("ofxWinDialog example");
 
-	// Font for general use
-	myFont.load("fonts/verdana.ttf", 14);
+	// Font for general use from the windows\fonts folder
+	LoadWindowsFont(myFont, "verdana.ttf", 14);
 
-	// Fonts for the example dialog combo box
-	tahoma.load("fonts/tahoma.ttf", 30);
-	verdana.load("fonts/verdana.ttf", 30);
-	georgia.load("fonts/georgia.ttf", 30);
-	trebuchet.load("fonts/trebuc.ttf", 30);
-	jokerman.load("fonts/jokerman.ttf", 40);
-	staccato.load("fonts/staccato222.ttf", 40);
+	// Load fonts for the example dialog combo box
+	LoadWindowsFont(tahoma, "tahoma.ttf", 30);
+	LoadWindowsFont(verdana, "verdana.ttf", 30);
+	LoadWindowsFont(georgia, "georgia.ttf", 30);
+	LoadWindowsFont(trebuchet, "trebuc.ttf", 30);
+	LoadWindowsFont(jokerman, "21205___.TTF", 40);
+	LoadWindowsFont(staccato, "TT0610M_.TTF", 40);
 
 	// An image for the example window
 	myImage.load("lighthouse.jpg");
@@ -208,48 +208,21 @@ void ofApp::draw() {
 		// Show the dialog combo box font selection and edit control text
 		ofSetColor(0);
 
-		// The selected fontm (fontNumber) is returned by the combo box index
+		// The selected font (fontNumber) is returned by the combo box index
 		// The font name is the string of that combo item (comboItems[fontNumber])
+		// The selected font (comboFont) is the item in the comboFonts vector (comboFonts[fontNumber])
 		// Text (fontText) is returned by an edit control and drawn with the selected font
 
-		// Draw the name and text strings centered on the window
+		// Draw the font name and dialog edit control text strings centered on the window
 		ofRectangle r = myFont.getStringBoundingBox(comboItems[fontNumber], 0, 0);
 		xpos = ofGetWidth()/2 - (int)(r.getWidth()/2.0);
 		myFont.drawString(comboItems[fontNumber].c_str(), xpos, 30);
 
-		switch (fontNumber) {
-			case 0:
-				r = tahoma.getStringBoundingBox(fontText, 0, 0);
-				xpos = ofGetWidth()/2 - (int)(r.getWidth()/2.0);
-				tahoma.drawString(fontText, xpos, 80);
-				break;
-			case 1:
-				r = verdana.getStringBoundingBox(fontText, 0, 0);
-				xpos = ofGetWidth()/2 -(int)(r.getWidth()/2.0);
-				verdana.drawString(fontText, xpos, 80);
-				break;
-			case 2:
-				r = georgia.getStringBoundingBox(fontText, 0, 0);
-				xpos = ofGetWidth()/2 - (int)(r.getWidth()/2.0);
-				georgia.drawString(fontText, xpos, 80);
-				break;
-			case 3:
-				r = trebuchet.getStringBoundingBox(fontText, 0, 0);
-				xpos = ofGetWidth()/2 - (int)(r.getWidth()/2.0);
-				trebuchet.drawString(fontText, xpos, 80);
-				break;
-			case 4:
-				r = jokerman.getStringBoundingBox(fontText, 0, 0);
-				xpos = ofGetWidth()/2 - (int)(r.getWidth()/2.0);
-				jokerman.drawString(fontText, xpos, 80);
-				break;
-			case 5:
-				r = staccato.getStringBoundingBox(fontText, 0, 0);
-				xpos = ofGetWidth()/2 - (int)(r.getWidth()/2.0);
-				staccato.drawString(fontText, xpos, 85);
-				break;
-			default:
-				break;
+		// Draw the font selected from the combo box
+		if (comboFont.isLoaded()) {
+			r = comboFont.getStringBoundingBox(fontText, 0, 0);
+			xpos = ofGetWidth()/2 - (int)(r.getWidth()/2.0);
+			comboFont.drawString(fontText, xpos, 80);
 		}
 
 		ofSetColor(255);
@@ -260,7 +233,6 @@ void ofApp::draw() {
 		ofSetColor(255);
 		myImage.draw(0, 0, ofGetWidth(), ofGetHeight());
 	}
-
 
 } // end Draw
 
@@ -326,3 +298,17 @@ void ofApp::dragEvent(ofDragInfo dragInfo){
 
 }
 
+//--------------------------------------------------------------
+// Load a truetype font from Windows/Fonts
+bool ofApp::LoadWindowsFont(ofTrueTypeFont& font, std::string fontname, int size)
+{
+	char fontpath[MAX_PATH]{};
+	HRESULT hr = SHGetFolderPathA(NULL, CSIDL_FONTS, NULL, 0, fontpath);
+	if (SUCCEEDED(hr)) {
+		std::string filepath = std::string(fontpath) + "\\" + fontname;
+		if (_access(filepath.c_str(), 0) != -1) {
+			return font.load(filepath, size);
+		}
+	}
+	return false;
+}
