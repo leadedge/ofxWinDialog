@@ -23,6 +23,8 @@ using namespace spoututils;
 
 class ofApp; // Forward declaration
 
+#define MAX_LOADSTRING 100
+
 class ofxWinDialog {
 
 public:
@@ -33,7 +35,7 @@ public:
     // Class dialog window handle
     HWND m_hDialog = nullptr;
 
-    ofxWinDialog(ofApp* app, HINSTANCE hInstance, HWND hWnd, std::wstring className=L"");
+	ofxWinDialog(ofApp * app, HINSTANCE hInstance, HWND hWnd, std::string className = "");
 
     ~ofxWinDialog();
 
@@ -208,7 +210,7 @@ public:
 
     // Set dialog position and size
     //  o If x and y are both positive, that position is used
-    //	o If x and y are both zero, centre on the host window
+    //  o If x and y are both zero, centre on the host window
     //  o if y is zero, offset from the centre by the x amount
     //  o If x and y are both negative, centre on the desktop
     //  o if x is CW_USEDEFAULT the system selects x and ignores y 
@@ -276,8 +278,12 @@ public:
     std::vector<struct ctl> controls; // Working controls
     std::vector<struct ctl> oldcontrols; // Controls for restore
 
-    WNDCLASSW wndClass={ 0 }; // Dialog window class structure
-    std::wstring m_ClassName;
+	// Class name
+	#ifdef UNICODE
+	WCHAR m_ClassName[MAX_LOADSTRING]{};
+	#else
+	CHAR m_ClassName[MAX_LOADSTRING]{};
+	#endif
 
  private:
 

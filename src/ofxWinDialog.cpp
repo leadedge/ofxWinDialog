@@ -28,6 +28,11 @@
 //                 Change Load from void to bool
 //      11.01.25 - Reset newcontrols ID in Open for new dialog
 //                 Remove GetControls() from load. Called by ofApp after Load.
+//		18.01.25 - Resolve title errors for Unicode/Multibyte build
+//				   Constructor : use std::string instead of std::wstring
+//				     Class name conditional on #ifdef UNICODE
+//				     WNDCLASS structure local
+//				   Open : Replace CreateWindowW with CreateWindow
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -45,35 +50,44 @@ static HHOOK hMsgHook = NULL;
 // Static window handle for GetMsgProc
 static HWND hwndDialog = NULL;
 
+ofxWinDialog::ofxWinDialog(ofApp * app, HINSTANCE hInstance, HWND hWnd, std::string className)
+{
+	m_hInstance = hInstance;
+	m_hwnd = hWnd;
 
-ofxWinDialog::ofxWinDialog(ofApp* app, HINSTANCE hInstance, HWND hWnd, std::wstring className) {
+	pApp = app; // The ofApp class pointer
 
-    m_hInstance = hInstance;
-    m_hwnd = hWnd;
+	// ofApp callback function for return of control values
+	// Set by AppDialogFunction
+	pAppDialogFunction = nullptr;
 
-    pApp = app; // The ofApp class pointer
+	WNDCLASS wndClass{0};
 
-    // ofApp callback function for return of control values
-    // Set by AppDialogFunction
-    pAppDialogFunction = nullptr;
+	// Main Windows message handling procedure
+	// to forward messages to the class message procedure
+	wndClass.lpfnWndProc = MainWndProc;
 
-    // Main Windows message handling procedure
-    // to forward messages to the class message procedure
-    wndClass.lpfnWndProc = MainWndProc;
-    
-    // Window class name for mutltiple dialogs
-    if (!className.empty())
-        wndClass.lpszClassName = className.c_str();
-    else
-        wndClass.lpszClassName = L"ofxWinDialogClass";
-    m_ClassName = wndClass.lpszClassName;
-        
+	// Window class name for mutltiple dialogs
+	#ifdef UNICODE
+	if (!className.empty())
+		mbstowcs_s(NULL, m_ClassName, className.c_str(), MAX_PATH);
+	else
+		wcscpy_s(m_ClassName, MAX_LOADSTRING, L"ofxWinDialogClass");
+	#else
+		if (!className.empty())
+			// WideCharToMultiByte(CP_ACP, 0, className.c_str(), -1, m_ClassName, MAX_LOADSTRING, NULL, NULL);
+			strcpy_s(m_ClassName, MAX_LOADSTRING, className.c_str());
+		else
+			strcpy_s(m_ClassName, MAX_LOADSTRING, "ofxWinDialogClass");
+	#endif
+
+	wndClass.lpszClassName = m_ClassName;
     wndClass.hInstance = hInstance;
     wndClass.hCursor = LoadCursor(NULL, IDC_ARROW);
     wndClass.hbrBackground = (HBRUSH)(COLOR_WINDOW); // Control background color
 
     // Register the window class
-    if (!RegisterClassW(&wndClass)) {
+    if (!RegisterClass(&wndClass)) {
         MessageBoxA(NULL, "Dialog window class registration failed", "Error", MB_OK | MB_ICONERROR);
         return;
     }
@@ -89,7 +103,7 @@ ofxWinDialog::~ofxWinDialog() {
     // Close the dialog window
     if(m_hDialog) SendMessage(m_hDialog, WM_CLOSE, 0, 0);
     // Unregister the window class
-    UnregisterClassW(m_ClassName.c_str(), m_hInstance);
+    UnregisterClass(m_ClassName, m_hInstance);
     // Release message hook
     if (hMsgHook) UnhookWindowsHookEx(hMsgHook);
 }
@@ -842,14 +856,19 @@ HWND ofxWinDialog::Open(std::string title)
         if (xpos < 0) xpos = 0;
     }
 
-    // Title is wide chars
-    wchar_t wtitle[MAX_PATH]{};
-    mbstowcs_s(NULL, wtitle, title.c_str(), MAX_PATH);
-
+	#ifdef UNICODE
+	// Title is wide chars
+	wchar_t titlechars[MAX_PATH]{};
+	mbstowcs_s(NULL, titlechars, title.c_str(), MAX_PATH);
+	#else
+	char titlechars[MAX_PATH]{};
+	strcpy_s(titlechars, MAX_PATH, title.c_str());
+	#endif
+   
     // No minimize, maximize or menu
     // WS_CAPTION | WS_SYSMENU gives a close button and icon
     // No WS_VISIBLE - ShowWindow when all controls have been created
-    HWND hwnd = CreateWindowW(m_ClassName.c_str(), wtitle,
+	HWND hwnd = CreateWindow(m_ClassName, titlechars,
         WS_CAPTION | WS_OVERLAPPED | WS_SYSMENU,
         xpos, ypos, dialogWidth, dialogHeight,
         m_hwnd,      // Parent window

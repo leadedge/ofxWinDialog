@@ -133,7 +133,7 @@ void ofApp::setup() {
 	// Shows how to use ofxWinDialog
 	// Opened/closed by a "Help" button in the main dialog
 	//
-	dialog2 = new ofxWinDialog(this, hInstance, g_hWnd, L"DialogClass2");
+	dialog2 = new ofxWinDialog(this, hInstance, g_hWnd, "DialogClass2");
 	// A separate callback function is used for each dialog
 	dialog2->AppDialogFunction(&ofApp::ofxWinDialogFunction2);
 	// Windows information icon, no custom font
@@ -156,7 +156,7 @@ void ofApp::setup() {
 	// This dialog shows how to use SpoutMessageBox and
 	// "CreateAppDialog3" has source code for each example.
 	//
-	dialog3 = new ofxWinDialog(this, hInstance, g_hWnd, L"DialogClass3");
+	dialog3 = new ofxWinDialog(this, hInstance, g_hWnd, "DialogClass3");
 	dialog3->AppDialogFunction(&ofApp::ofxWinDialogFunction3);
 	dialog3->SetIcon(hIcon); // Use the Spout icon loaded previously
 	CreateAppDialog3();
