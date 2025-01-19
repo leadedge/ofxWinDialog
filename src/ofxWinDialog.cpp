@@ -33,6 +33,8 @@
 //				     Class name conditional on #ifdef UNICODE
 //				     WNDCLASS structure local
 //				   Open : Replace CreateWindowW with CreateWindow
+//				   Rename GetMsgProc to GetKeyMsgProc to avoid naming conflicts
+//				   Save - full path on overwrite warn.
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -44,10 +46,10 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 // Message hook to enable the tab key
 // https://learn.microsoft.com/en-us/windows/win32/winmsg/getmsgproc
-LRESULT CALLBACK GetMsgProc(int nCode, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK GetKeyMsgProc(int nCode, WPARAM wParam, LPARAM lParam);
 static HHOOK hMsgHook = NULL;
 
-// Static window handle for GetMsgProc
+// Static window handle for GetKeyMsgProc
 static HWND hwndDialog = NULL;
 
 ofxWinDialog::ofxWinDialog(ofApp * app, HINSTANCE hInstance, HWND hWnd, std::string className)
@@ -94,7 +96,7 @@ ofxWinDialog::ofxWinDialog(ofApp * app, HINSTANCE hInstance, HWND hWnd, std::str
 
     // Create the message hook to enable the tab key
     if (!hMsgHook) {
-        hMsgHook = SetWindowsHookEx(WH_GETMESSAGE, GetMsgProc, NULL, GetCurrentThreadId());
+        hMsgHook = SetWindowsHookEx(WH_GETMESSAGE, GetKeyMsgProc, NULL, GetCurrentThreadId());
     }
 }
 
@@ -654,7 +656,7 @@ void ofxWinDialog::Save(std::string filename, bool bOverWrite)
 
     // Check if file exists if bOverWrite is false
     if (!bOverWrite && _access(inipath.c_str(), 0) != -1) {
-        sprintf_s(tmp, MAX_PATH, "%s exists - overwrite?", filename.c_str());
+        sprintf_s(tmp, MAX_PATH, "%s\nexists - overwrite?", inipath.c_str());
         if(MessageBoxA(NULL, tmp, "Warning", MB_YESNO | MB_TOPMOST) == IDNO)
             return;
     }
@@ -1573,7 +1575,7 @@ void ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 // conflict with static variables. It is restored if the dialog
 // is closed and opened again.
 //
-LRESULT CALLBACK GetMsgProc(int nCode, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK GetKeyMsgProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     LPMSG lpMsg = (LPMSG)lParam;
     if (nCode >= 0 && PM_REMOVE == wParam) {
