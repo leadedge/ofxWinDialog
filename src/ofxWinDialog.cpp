@@ -35,6 +35,10 @@
 //				   Open : Replace CreateWindowW with CreateWindow
 //				   Rename GetMsgProc to GetKeyMsgProc to avoid naming conflicts
 //				   Save - full path on overwrite warn.
+//		22.01.25 - SetFont - Specify font height in dialog units.
+//				   Convert dialog units to logical units based on screen dpi.
+//				   Add GetFontHeight() function.
+//		23.01.25 - Add Spin control. Update full example.
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -111,11 +115,23 @@ ofxWinDialog::~ofxWinDialog() {
 }
 
 // Set a custom font
+// height in dialog units
 void ofxWinDialog::SetFont(std::string name, LONG height, LONG weight)
 {
     fontname = name;
     fontheight = height;
     fontweight = weight;
+}
+
+// Return the font height set
+LONG ofxWinDialog::GetFontHeight() {
+	return fontheight;
+}
+
+// Return the logical font handle
+HFONT ofxWinDialog::GetFont()
+{
+	return g_hFont;
 }
 
 // Checkbox
@@ -227,7 +243,9 @@ void ofxWinDialog::AddEdit(std::string title, int x, int y, int width, int heigh
     controls.push_back(control);
 }
 
+//
 // Combo box list control
+//
 void ofxWinDialog::AddCombo(std::string title, int x, int y, int width, int height, std::vector<std::string> items, int index)
 {
     ctl control{};
@@ -240,6 +258,41 @@ void ofxWinDialog::AddCombo(std::string title, int x, int y, int width, int heig
     control.Width=width;
     control.Height=height;
     controls.push_back(control);
+}
+
+//
+// Spin control
+//
+// x, y, width, height - position and dimensions
+// min, max, - range. value - starting value
+// Style can be UDS_ALIGNLEFT or UDS_ALIGNRIGHT (default)
+//
+void ofxWinDialog::AddSpin(std::string title, int x, int y, int width, int height,
+	int min, int max, int value, DWORD dwStyle) {
+
+	ctl control {};
+	control.Type = "Spin";
+	control.Title = title;
+	control.Min = (float)min; // min value
+	control.Max = (float)max; // max value
+	control.Val = value; // initial value
+	control.Style = dwStyle;
+	control.X = x;
+	control.Y = y;
+	control.Width = width;
+	control.Height = height;
+	controls.push_back(control);
+
+}
+
+// For testing
+void ofxWinDialog::AddCombo(std::string title, int x, int y, int width, int height) {
+
+	std::vector<std::string> items;
+	items.push_back("Item 1");
+	items.push_back("Item 2");
+	items.push_back("Item 3");
+	AddCombo(title, x, y, width, height, items, 0);
 }
 
 // Push button
@@ -533,6 +586,12 @@ void ofxWinDialog::GetControls()
                 }
                 DialogFunction(controls[i].Title, controls[i].Text, true);
             }
+			else if (controls[i].Type == "Spin") {
+				if (m_hDialog) {
+					controls[i].Val = (int)SendMessage(controls[i].hwndControl, UDM_GETPOS, 0, 0);
+					DialogFunction(controls[i].Title, "", controls[i].Val);
+				}
+			}
             else
                 DialogFunction(controls[i].Title, "", controls[i].Val);
         }
@@ -578,7 +637,6 @@ void ofxWinDialog::Refresh()
             }
         }
         if (controls[i].Type == "Slider") {
-
             if ((controls[i].Max - controls[i].Min) > 1000.0)
                 SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, (int)controls[i].SliderVal);
             else
@@ -611,6 +669,9 @@ void ofxWinDialog::Refresh()
         if (controls[i].Type == "Edit") {
             SetWindowTextA(controls[i].hwndControl, (LPCSTR)controls[i].Text.c_str());
         }
+		if (controls[i].Type == "Spin") {
+			SendMessageA(controls[i].hwndControl, (UINT)UDM_SETPOS, 0, (LPARAM)controls[i].Val);
+		}
      }
 }
 
@@ -681,6 +742,10 @@ void ofxWinDialog::Save(std::string filename, bool bOverWrite)
             else if (controls[i].Type == "Edit") {
                 WritePrivateProfileStringA((LPCSTR)ControlSection.c_str(), (LPCSTR)controls[i].Title.c_str(), (LPCSTR)controls[i].Text.c_str(), (LPCSTR)inipath.c_str());
             }
+			else if (controls[i].Type == "Spin") {
+				sprintf_s(tmp, MAX_PATH, "%d", controls[i].Val);
+				WritePrivateProfileStringA((LPCSTR)ControlSection.c_str(), (LPCSTR)controls[i].Title.c_str(), (LPCSTR)tmp, (LPCSTR)inipath.c_str());
+			}
             else if (controls[i].Type == "Slider") {
                 sprintf_s(tmp, MAX_PATH, "%.2f", controls[i].SliderVal);
                 WritePrivateProfileStringA((LPCSTR)ControlSection.c_str(), (LPCSTR)controls[i].Title.c_str(), (LPCSTR)tmp, (LPCSTR)inipath.c_str());
@@ -691,7 +756,6 @@ void ofxWinDialog::Save(std::string filename, bool bOverWrite)
             }
         }
     }
-
 }
 
 // Load controls from an initialization file
@@ -772,7 +836,12 @@ bool ofxWinDialog::Load(std::string filename, std::string section)
                     if (tmp[0]) controls[i].Text = tmp;
                 }
             }
-            else if (controls[i].Type == "Slider") {
+			else if (controls[i].Type == "Spin") {
+				if (GetPrivateProfileStringA((LPCSTR)ControlSection.c_str(), (LPCSTR)controls[i].Title.c_str(), NULL, (LPSTR)tmp, MAX_PATH, (LPCSTR)inipath.c_str()) > 0) {
+					if (tmp[0]) controls[i].Val = atoi(tmp);
+				}
+			}
+			else if (controls[i].Type == "Slider") {
                 if (GetPrivateProfileStringA((LPCSTR)ControlSection.c_str(), (LPCSTR)controls[i].Title.c_str(), NULL, (LPSTR)tmp, MAX_PATH, (LPCSTR)inipath.c_str()) > 0) {
                     if (tmp[0]) controls[i].SliderVal = (float)atof(tmp);
                 }
@@ -1024,7 +1093,7 @@ HWND ofxWinDialog::Open(std::string title)
                 if (controls[i].Index > 0) {
                     // Create a static text control to display the value of the slider
                     HWND hwndval = CreateWindowExA(
-                        0, "STATIC", "0", WS_VISIBLE | WS_CHILD | SS_RIGHT, // right aligned
+						0, "STATIC", "0", WS_CHILD | WS_VISIBLE | WS_CHILD | SS_RIGHT, // right aligned
                         controls[i].X + controls[i].Width, controls[i].Y,
                         40, controls[i].Height, hwnd, NULL, m_hInstance, NULL);
                     if (hwndval) {
@@ -1064,6 +1133,80 @@ HWND ofxWinDialog::Open(std::string title)
             }
         }
 
+		//
+		// Spin control
+		//
+		// A spin control increments or decrements a value in
+		// a buddy text window and immediately returns it to ofApp.
+		if (controls[i].Type == "Spin") {
+
+			// Create the static text buddy window
+			// Text alignment can be SS_LEFT (default), SS_RIGHT or SS_CENTER.
+			// Outline can be WS_BORDER, SS_SUNKEN
+			DWORD dwStyle = 0;
+			// Remove the spin control alignment styles
+			if (controls[i].Style > 0) {
+				dwStyle = controls[i].Style;
+				dwStyle &= ~UDS_ALIGNLEFT;
+				dwStyle &= ~UDS_ALIGNRIGHT;
+				// Add the basic styles
+				dwStyle |= (WS_CHILD | WS_VISIBLE | WS_CHILD);
+			} else {
+				dwStyle = WS_CHILD | WS_VISIBLE | WS_CHILD;
+			}
+
+			// Create the static text buddy control
+			hwndc = CreateWindowExA(0, "STATIC", "0",
+				dwStyle,
+				controls[i].X, controls[i].Y, controls[i].Width, controls[i].Height,
+				hwnd, (HMENU)ID, m_hInstance, NULL);
+
+			if (hwndc) {
+
+				// Create the spin control (UPDOWN_CLASS)
+				// Style can include UDS_ALIGNLEFT or UDS_ALIGNRIGHT (default)
+				if (controls[i].Style > 0) {
+					dwStyle = controls[i].Style;
+					// Remove UDS_WRAP in case SS_CENTER has been specified
+					// for the static text (the values are the same).
+					dwStyle &= ~UDS_WRAP;
+					// Isolate the UDS style
+					if ((dwStyle & UDS_ALIGNLEFT) == UDS_ALIGNLEFT) {
+						dwStyle |= UDS_ALIGNLEFT;
+					} else {
+						dwStyle |= UDS_ALIGNRIGHT;
+					}
+					dwStyle |= (WS_CHILD | WS_VISIBLE | UDS_SETBUDDYINT | UDS_AUTOBUDDY);
+				} else {
+					dwStyle = WS_CHILD | WS_VISIBLE | UDS_SETBUDDYINT | UDS_AUTOBUDDY | UDS_ALIGNRIGHT;
+				}
+
+				// Position left or right depending on the style
+				// X position is connected to the buddy window
+				// and depends on UDS_ALIGNLEFT or UDS_ALIGNLEFT
+				hwndc = CreateWindowExA(0, UPDOWN_CLASSA, controls[i].Title.c_str(), dwStyle,
+					// Set to zero to automatically size to fit the buddy window.
+					// Position and size is determined by UDS_ALIGNLEFT or UDS_ALIGNRIGHT.
+					0, 0, 0, 0,
+					hwnd, (HMENU)ID, m_hInstance, NULL);
+
+				if (hwndc) {
+					// Set the range for the up-down control - min, max (integer)
+					// The LOWORD of lParam is a short that specifies the maximum position
+					// and the HIWORD is a short that specifies the minimum position.
+					// MAKELPARAM(low, high)
+					SendMessageA(hwndc, (UINT)UDM_SETRANGE, 0, MAKELPARAM(controls[i].Max, controls[i].Min));
+					// Set a starting value
+					SendMessageA(hwndc, (UINT)UDM_SETPOS, 0, (LPARAM)controls[i].Val);
+					// The control hahdle
+					controls[i].hwndControl = hwndc;
+					controls[i].ID = ID;
+					ID++;
+				}
+			}
+		}
+
+
         //
         // Combo box list selection control
         //
@@ -1077,7 +1220,7 @@ HWND ofxWinDialog::Open(std::string title)
 
             if (hwndc) {
                 // Add combo box items
-                if (controls[i].Items.size() > 0) {
+				if (!controls[i].Items.empty() && controls[i].Items.size() > 0) {
                     for (size_t j = 0; j<controls[i].Items.size(); j++) {
                         // Item string is wide chars for unicode and multi-byte
                         wchar_t itemstr[MAX_PATH]{};
@@ -1204,14 +1347,37 @@ HWND ofxWinDialog::Open(std::string title)
 
     // Custom dialog font
     if (!fontname.empty() && fontheight > 0) {
+
          LOGFONTA logFont{};
-         logFont.lfHeight = fontheight;
          logFont.lfWeight = fontweight;
+		 logFont.lfHeight = fontheight;
          logFont.lfCharSet = ANSI_CHARSET;
          logFont.lfQuality = DEFAULT_QUALITY;
          strcpy_s(logFont.lfFaceName, 32, fontname.c_str());
+
+		 //
+		 // Font height is in dialog units
+		 // Convertfrom dialog units to logical units and adjust for screen dpi.
+		 // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-logfonta
+		 //
+
+		 // Get the screen DPI
+		 HDC hdc = GetDC(NULL);
+		 int dpi = GetDeviceCaps(hdc, LOGPIXELSY);
+		 ReleaseDC(NULL, hdc);
+
+		 // Calculate the logical font height based on
+		 // the screen dpi and number of dialog points per inch (72)
+		 // A negative value ensures that the font scaling is
+		 // dynamic and adjusts for the DPI.
+		 logFont.lfHeight = -MulDiv(fontheight, dpi, 72);
+
          // Create the font
          HFONT hFont = CreateFontIndirectA(&logFont);
+
+		 // Save the font handle to retrieve with GetFont
+		 g_hFont = hFont;
+
          // Set the font for the dialog and all controls
          SendMessage(hwnd, WM_SETFONT, (WPARAM)hFont, (LPARAM)MAKELONG(TRUE, 0));
          for (size_t i=0; i<controls.size(); i++) {
@@ -1334,7 +1500,7 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 //
 void ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    LPDRAWITEMSTRUCT lpdis ={};
+    LPDRAWITEMSTRUCT lpdis{};
     HCURSOR cursorHand = NULL;
 
     switch (msg) {
@@ -1369,6 +1535,33 @@ void ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     return;           // Prevent From Happening
             }
             break;
+
+		case WM_NOTIFY:
+			{
+				// Spin controls
+				if (controls.size() > 0) {
+					for (size_t i = 0; i < controls.size(); i++) {
+						if (controls[i].Type == "Spin") {
+							if (LOWORD(wParam) == controls[i].ID) {
+								switch (((LPNMHDR)lParam)->code) {
+									case UDN_DELTAPOS:
+										LPNMUPDOWN lpnmud = (LPNMUPDOWN)lParam;
+										int num = lpnmud->iDelta + lpnmud->iPos;
+										if(num < (int)controls[i].Min)
+											num = (int)controls[i].Min;
+										if (num > (int)controls[i].Max)
+											num = (int)controls[i].Max;
+										controls[i].Val = num;
+										// Inform ofApp
+										DialogFunction(controls[i].Title, "", controls[i].Val);
+								}
+							}
+						}
+					}
+				}
+			}
+			break;
+
 
          case WM_COMMAND:
 

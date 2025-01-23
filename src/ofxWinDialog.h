@@ -92,6 +92,7 @@ public:
     // min, max, - range
     // value - starting position
     // bShow (default true)
+    // bShow (default true)
     //    True adds a value indicator to the right of the slider
     //    False if not required
     // tickinterval (default 0)
@@ -115,7 +116,22 @@ public:
     void AddEdit(std::string title, int x, int y, int width, int height, std::string text, DWORD dwStyle = 0);
     
     // Combo box list selection
-    void AddCombo(std::string title, int x, int y, int width, int height, std::vector<std::string> items, int index);
+	void AddCombo(std::string title, int x, int y, int width, int height, std::vector<std::string> items, int index);
+	// For testing
+	void AddCombo(std::string title, int x, int y, int width, int height);
+
+	//
+	// Spin control
+	//
+	// An up/down spin control increments or decrements
+	// a value that is shown in a a buddy text window
+	// and immediately returns it to ofApp.
+	//    x, y, width, height - position and dimensions
+	//    min, max - range. index - starting value
+	// Style is the same as for static text but can include
+	// spin control alignment UDS_ALIGNLEFT or UDS_ALIGNRIGHT (default)
+	void AddSpin(std::string title, int x, int y, int width, int height,
+		int min, int max, int index, DWORD dwStyle = 0);
     
     // Static group box
     // A group box is not a control and has no title
@@ -154,6 +170,8 @@ public:
     float GetSlider(std::string title);
     // Get edit control text
     std::string GetEdit(std::string title);
+	// Get spin control edit text
+	std::string GetSpin(std::string title);
     // Get current combo box item index
     int GetComboItem(std::string title);
     // Get combo box item text
@@ -203,10 +221,16 @@ public:
 
     // Set a custom font
     // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-logfonta
-    // name   - e.g. "Tahoma", "Ms Shell Dlg" etc.
-    // height - height in logical units
-    // weight - FW_NORMAL, FW_BOLD etc. (default FW_NORMAL)
-    void SetFont(std::string name, LONG height, LONG weight = FW_NORMAL);
+    // name    - e.g. "Tahoma", "Ms Shell Dlg" etc.
+    // height  - font height in dialog units
+    // weight  - FW_NORMAL, FW_BOLD etc. (default FW_NORMAL)
+	void SetFont(std::string name, LONG height, LONG weight = FW_NORMAL);
+
+	// Return the font height set
+	LONG GetFontHeight();
+
+	// Return the logical font handle after window creation
+	HFONT GetFont();
 
     // Set dialog position and size
     //  o If x and y are both positive, that position is used
@@ -302,7 +326,9 @@ public:
 
     // Variables for optional font
     std::string fontname;
-    LONG fontheight = 0;
+	LONG fontheight = 0;
     LONG fontweight = FW_NORMAL;
+	HFONT g_hFont = NULL;
+
 
  };

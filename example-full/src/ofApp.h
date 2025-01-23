@@ -53,6 +53,7 @@ class ofApp : public ofBaseApp {
 		ofTrueTypeFont myFont;
 		ofImage myImage;
 		float counter = 0.0f; // Graphics size
+		int shapeNumber = 0; // Numeral in the centre of the shape
 
 		//
 		// Main Dialog (Settings)

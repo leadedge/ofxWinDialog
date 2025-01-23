@@ -59,13 +59,13 @@ void ofApp::setup() {
 	// Font for general use from the windows\fonts folder
 	LoadWindowsFont(myFont, "verdana.ttf", 14);
 
-	// Load fonts for the example dialog combo box
-	LoadWindowsFont(tahoma, "tahoma.ttf", 30);
-	LoadWindowsFont(verdana, "verdana.ttf", 30);
-	LoadWindowsFont(georgia, "georgia.ttf", 30);
-	LoadWindowsFont(trebuchet, "trebuc.ttf", 30);
-	LoadWindowsFont(jokerman, "21205___.TTF", 40);
-	LoadWindowsFont(staccato, "TT0610M_.TTF", 40);
+	// Load truetype fonts for the dialog combo box screen text
+	LoadWindowsFont(tahoma,    "tahoma.ttf",   30);
+	LoadWindowsFont(verdana,   "verdana.ttf",  30);
+	LoadWindowsFont(georgia,   "georgia.ttf",  30);
+	LoadWindowsFont(trebuchet, "trebuc.ttf",   30);
+	LoadWindowsFont(jokerman,  "21205___.TTF", 40);
+	LoadWindowsFont(staccato,  "TT0610M_.TTF", 40);
 
 	// An image for the example window
 	myImage.load("lighthouse.jpg");
@@ -106,9 +106,11 @@ void ofApp::setup() {
 	//    height - height in logical units
 	//    weight - FW_NORMAL, FW_MEDIUM, FW_BOLD etc. Default FW_NORMAL.
 	// More details : https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-logfonta
-	// The default font is "Ms Shell Dlg".
+	// The default font is "Ms Shell Dlg" 8.
 	// Create a larger font for this example.
-	dialog->SetFont("Trebuchet", 22);
+	// Font height is in dialog units (72 per inch)
+	// and adjusts to the screen dots per inch.
+	dialog->SetFont("Trebuchet", 12);
 
 	// CreateAppDialog adds controls to the dialog
 	// and sets the dialog size and opening position.
@@ -205,8 +207,20 @@ void ofApp::draw() {
 		else
 			ofDrawRectangle(xpos-radius*2, ypos-radius, radius*4, radius*2);
 
-		// Show the dialog combo box font selection and edit control text
+		// Draw a number in the middle of the circle
 		ofSetColor(0);
+		ofRectangle r;
+		if (comboFont.isLoaded()) {
+			std::string str = std::to_string(shapeNumber);
+			r = comboFont.getStringBoundingBox(str, 0, 0);
+			xpos = ofGetWidth() / 2 - (int)(r.getWidth() / 2.0);
+			ypos = ofGetHeight() / 2 + (int)(r.getHeight() / 2.0);
+			comboFont.drawString(str, xpos, ypos);
+		}
+
+		//
+		// Show the dialog combo box font selection and edit control text
+		//
 
 		// The selected font (fontNumber) is returned by the combo box index
 		// The font name is the string of that combo item (comboItems[fontNumber])
@@ -214,7 +228,7 @@ void ofApp::draw() {
 		// Text (fontText) is returned by an edit control and drawn with the selected font
 
 		// Draw the font name and dialog edit control text strings centered on the window
-		ofRectangle r = myFont.getStringBoundingBox(comboItems[fontNumber], 0, 0);
+		r = myFont.getStringBoundingBox(comboItems[fontNumber], 0, 0);
 		xpos = ofGetWidth()/2 - (int)(r.getWidth()/2.0);
 		myFont.drawString(comboItems[fontNumber].c_str(), xpos, 30);
 

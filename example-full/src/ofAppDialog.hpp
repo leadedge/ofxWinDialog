@@ -72,6 +72,19 @@ void ofApp::CreateAppDialog()
 	// The button can be at the right instead of the left : BS_RIGHTBUTTON
 	// Add the style as an optional last argument
 	dialog->AddCheckBox("Show graphics", "", 35, ypos, 160, 25, bShowGraphics);
+
+	//
+	// Spin control
+	//
+	// An up/down spin control increments or decrements
+	// a value that is shown in a a buddy text window
+	// and immediately returns it to ofApp.
+	//    x, y, width, height - position and dimensions
+	//    min, max - range. index - starting value
+	// Style is the same as for static text but can include alignment
+	// of the spin control : UDS_ALIGNLEFT or UDS_ALIGNRIGHT (default)
+	// A border provides best visibility.
+	dialog->AddSpin("Spin 1", 200, ypos, 45, 25, 0, 10, 0, WS_BORDER | SS_CENTER);
 	ypos += 35;
 
 	//
@@ -86,7 +99,7 @@ void ofApp::CreateAppDialog()
 	//
 	// Group - Graphics shape
 	dialog->AddRadioGroup();
-	dialog->AddRadioButton("Circle", "",     35, ypos, 100, 25, true); // Active radio buttonp
+	dialog->AddRadioButton("Circle", "",     35, ypos, 100, 25, true); // Active radio button
 	dialog->AddRadioButton("Square", "",    135, ypos, 100, 25, false);
 	dialog->AddRadioButton("Rectangle", "", 235, ypos, 120, 25, false);
 	ypos += 35;
@@ -231,6 +244,7 @@ void ofApp::CreateAppDialog()
 	// dialog->Save and separate sections can be specified
 	// for dialog->Load
 	dialog->SetSection("Show graphics", "Graphics");
+	dialog->SetSection("Spin 1", "Graphics");
 	dialog->SetSection("Circle", "Graphics");
 	dialog->SetSection("Square", "Graphics");
 	dialog->SetSection("Rectangle", "Graphics");
@@ -330,6 +344,13 @@ void ofApp::ofxWinDialogFunction(std::string title, std::string text, int value)
 	// Checkbox (show graphics overlay)
 	if (title == "Show graphics") {
 		bShowGraphics = (bool)(value == 1);
+	}
+
+	//
+	// Spin control
+	// (increments or decrements the numeral in the centre)
+	if (title == "Spin 1") {
+		shapeNumber = value;
 	}
 
 	//
