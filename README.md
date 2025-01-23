@@ -6,7 +6,7 @@ Can be used together with [ofxWinMenu](https://github.com/leadedge/ofxWinMenu) t
 
 ofxWinDialog has been developed using Visual Studio 2022.
 
-<img  hspace="100" src="https://github.com/user-attachments/assets/91dbe0ec-de96-4c10-82f0-27e43cbf6c86" width="200"/>
+<img  hspace="100" src="https://github.com/user-attachments/assets/023333b4-1bbe-4a58-a661-d82fea55d5e0" width="200"/>
 
 ### Setup
 
@@ -66,6 +66,7 @@ Controls can be :
 - Push button
 - Slider
 - Edit control
+- Spin control
 - Combo list box
 - Group box
 - Static text
