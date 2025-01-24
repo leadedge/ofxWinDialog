@@ -6,7 +6,21 @@ Can be used together with [ofxWinMenu](https://github.com/leadedge/ofxWinMenu) t
 
 ofxWinDialog has been developed using Visual Studio 2022.
 
-<img  hspace="100" src="https://github.com/user-attachments/assets/023333b4-1bbe-4a58-a661-d82fea55d5e0" width="200"/>
+<img  hspace="100" src="https://github.com/user-attachments/assets/59f9c2b9-70f7-4b7a-a0c6-6165b1b6a703" width="200"/>
+
+### Controls :
+- Checkbox
+- Radio button group
+- Radio button
+- Push button
+- Spin control
+- Slider
+- Edit control
+- Combo box
+- List box
+- Group box
+- Static text
+- Hyperlink
 
 ### Setup
 
@@ -59,26 +73,11 @@ Register the function for the dialog to use :
 	
 Add controls to the dialog.
 
-Controls can be :
-- Checkbox
-- Radio button group
-- Radio button
-- Push button
-- Slider
-- Edit control
-- Spin control
-- Combo list box
-- Group box
-- Static text
-- Hyperlink
-
-For details refer to the ofxWinDialog and example source files.
-
 For example :
 
 	dialog->AddCheckBox("Show graphics", "", 20, 100, 160, 25, bShowGraphics);
 
-Where "Show graphics" is the string returned to "appDialogFunction" from ofxWinDialog when the user changes the checkbox and "bShowGraphics" is a flag that is changed within ofApp when that string is received.
+Where "Show graphics" is the string returned to "appDialogFunction" from ofxWinDialog when the user changes the checkbox and "bShowGraphics" is a flag that is changed within ofApp when that string is received. For details of other controls refer to the ofxWinDialog and example source files.
 
 Set the dialog opening position and size. Refer to the example code for opening position options. Position 0, 0 will centre the dialog on the app window.
 
