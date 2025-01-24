@@ -101,7 +101,7 @@ class ofApp : public ofBaseApp {
 		int blue = 0;
 		int alpha = 255;
 
-		// Font name strings for the combo list box
+		// Item strings (font names) for the combo box
 		std::vector<std::string> comboItems;
 
 		// Fonts selected by the combo box
@@ -116,12 +116,16 @@ class ofApp : public ofBaseApp {
 		int fontNumber = 0; // item number selected
 		ofTrueTypeFont comboFont; // font selected
 
+		// Item strings for the list box
+		std::vector<std::string> listItems;
+		std::string listString;
+		int listNumber = 0;
+
 		// Edit text control
 		std::string fontText; // Text for example font
 
 		// Load a truetype font from Windows/Fonts
 		bool LoadWindowsFont(ofTrueTypeFont& font, std::string fontname, int size);
-
 
 
 };

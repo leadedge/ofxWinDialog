@@ -53,6 +53,102 @@
 //--------------------------------------------------------------
 void ofApp::setup() {
 
+	// LJ DEBUG
+
+	/*
+	Must be done post build
+	versionInfo.dwSignature = 0xFEEF04BD; // Fixed signature (0xFEEF04BD)
+	versionInfo.dwStrucVersion = 0x00010000; // Structure version (1.0)
+
+	// Fill in the File Version (2.3.1.45)
+	versionInfo.dwFileVersionMS = (2 << 16) | 3; // Major: 2, Minor: 3
+	versionInfo.dwFileVersionLS = (1 << 16) | 45; // Build: 1, Revision: 45
+
+	// Fill in the Product Version (2.3.0.0)
+	versionInfo.dwProductVersionMS = (2 << 16) | 3; // Major: 2, Minor: 3
+	versionInfo.dwProductVersionLS = (0 << 16) | 0; // Build: 0, Revision: 0
+
+	// Fill in flags, OS, file type, etc.
+	versionInfo.dwFileFlagsMask = 0x3F; // Valid flag bits
+	versionInfo.dwFileFlags = 0x0; // No special flags (normal file)
+	versionInfo.dwFileOS = VOS_NT_WINDOWS32; // OS type (Windows 32-bit)
+	versionInfo.dwFileType = VFT_APP; // Type of file (Application)
+	versionInfo.dwFileSubtype = VFT2_UNKNOWN; // Subtype (Unknown)
+	// versionInfo.dwFileDateMS = 0; // No file date (0 means not set)
+	// versionInfo.dwFileDateLS = 0; // No file date (0 means not set)
+
+	// Set a specific date: 14th January 2023
+	SYSTEMTIME systemTime = { 0 };
+	systemTime.wYear = 2023;
+	systemTime.wMonth = 1; // January
+	systemTime.wDay = 14;
+	systemTime.wHour = 0; // Midnight (00:00:00)
+	systemTime.wMinute = 0;
+	systemTime.wSecond = 0;
+	systemTime.wMilliseconds = 0;
+
+	// Convert SYSTEMTIME to FILETIME
+	FILETIME fileTime;
+	SystemTimeToFileTime(&systemTime, &fileTime);
+
+	// Set dwFileDateMS and dwFileDateLS
+	versionInfo.dwFileDateMS = fileTime.dwHighDateTime; // High part of FILETIME
+	versionInfo.dwFileDateLS = fileTime.dwLowDateTime; // Low part of FILETIME
+
+	
+    // Define the language and codepage
+	WORD language = 0x0409; // English (US)
+	WORD codePage = 0x04B0; // Unicode
+
+	// Create the resource data (StringFileInfo)
+	struct StringFileInfoBlock {
+		WORD length;
+		WORD valueLength;
+		WORD type;
+		WCHAR data[1024]; // Company name, product name, file description, etc.
+	} stringFileInfo = { 0 };
+
+	wcscpy_s(stringFileInfo.data, L"CompanyName\0Your Company Name\0FileDescription\0My Application\0FileVersion\0"
+								  L"2.3.1.45\0InternalName\0MyApp.exe\0ProductName\0My Product\0ProductVersion\0"
+								  L"2.3.0.0\0");
+
+	// Must be done post-build
+
+	// Open the executable file
+	std::string executablePath = GetExePath(true);
+	printf("%s\n", executablePath.c_str());
+	HANDLE hFile = CreateFileA(executablePath.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+	if (hFile == INVALID_HANDLE_VALUE) {
+		std::cerr << "Failed to open file." << std::endl;
+		return;
+	}
+
+	// Begin resource update
+	HANDLE hUpdate = BeginUpdateResourceA(executablePath.c_str(), FALSE);
+	if (hUpdate == NULL) {
+		std::cerr << "Failed to begin resource update." << std::endl;
+		CloseHandle(hFile);
+		return;
+	}
+
+	// Update the resource with version information
+	if (!UpdateResource(hUpdate, RT_VERSION, MAKEINTRESOURCE(1), language, &versionInfo, sizeof(versionInfo))) {
+		std::cerr << "Failed to update version resource." << std::endl;
+		EndUpdateResource(hUpdate, TRUE);
+		CloseHandle(hFile);
+		return;
+	}
+
+	// End resource update and save changes to file
+	if (!EndUpdateResource(hUpdate, FALSE)) {
+		std::cerr << "Failed to apply changes to executable." << std::endl;
+	}
+
+	CloseHandle(hFile);
+	std::cout << "Version information has been successfully added to the executable." << std::endl;
+	*/
+
+
 	 // Set the app name on the title bar
 	ofSetWindowTitle("ofxWinDialog example");
 
@@ -210,8 +306,9 @@ void ofApp::draw() {
 		// Draw a number in the middle of the circle
 		ofSetColor(0);
 		ofRectangle r;
+		std::string str;
 		if (comboFont.isLoaded()) {
-			std::string str = std::to_string(shapeNumber);
+			str = std::to_string(shapeNumber);
 			r = comboFont.getStringBoundingBox(str, 0, 0);
 			xpos = ofGetWidth() / 2 - (int)(r.getWidth() / 2.0);
 			ypos = ofGetHeight() / 2 + (int)(r.getHeight() / 2.0);
@@ -228,9 +325,10 @@ void ofApp::draw() {
 		// Text (fontText) is returned by an edit control and drawn with the selected font
 
 		// Draw the font name and dialog edit control text strings centered on the window
-		r = myFont.getStringBoundingBox(comboItems[fontNumber], 0, 0);
+		str = comboItems[fontNumber];
+		r = myFont.getStringBoundingBox(str, 0, 0);
 		xpos = ofGetWidth()/2 - (int)(r.getWidth()/2.0);
-		myFont.drawString(comboItems[fontNumber].c_str(), xpos, 30);
+		myFont.drawString(str.c_str(), xpos, 30);
 
 		// Draw the font selected from the combo box
 		if (comboFont.isLoaded()) {
@@ -239,8 +337,19 @@ void ofApp::draw() {
 			comboFont.drawString(fontText, xpos, 80);
 		}
 
+
+		// Draw the text string selected from the list box
 		ofSetColor(255);
-		myFont.drawString("Right mouse click - open/close dialog", 130, ofGetHeight()-20);
+		str = listItems[listNumber];
+		r = myFont.getStringBoundingBox(str, 0, 0);
+		xpos = ofGetWidth()/2 - (int)(r.getWidth()/2.0);
+		myFont.drawString(str.c_str(), xpos, ofGetHeight()-50);
+
+		// Information text
+		str = "Right mouse click - open/close dialog";
+		r = myFont.getStringBoundingBox(str, 0, 0);
+		xpos = ofGetWidth()/2 - (int)(r.getWidth()/2.0);
+		myFont.drawString("Right mouse click - open/close dialog", xpos, ofGetHeight() - 20);
 
 	}
 	else {

@@ -156,14 +156,15 @@ void ofApp::CreateAppDialog()
 	dialog->AddText("Alpha",   35, ypos,  70, 25);
 	ypos += 40;
 
+
 	//
 	// Combo box
 	//
-	// Prepare items for the combo list box
-	// Test for successful load from Windows/Fonts
-	if (tahoma.isLoaded()) {
+
+	// Prepare item strings and corresponding fonts for the combo box
+	if (tahoma.isLoaded()) { // Test for successful load from Windows/Fonts
 		comboItems.push_back("Tahoma");  // Item 0
-		comboFonts.push_back(tahoma);
+		comboFonts.push_back(tahoma); // Font 0
 	}
 	if (verdana.isLoaded()) {
 		comboItems.push_back("Verdana"); // Item 1 etc
@@ -185,34 +186,62 @@ void ofApp::CreateAppDialog()
 		comboItems.push_back("Staccato");
 		comboFonts.push_back(staccato);
 	}
-	fontNumber = 0; // starting index 0 (Tahoma)
-	comboFont = comboFonts[0]; // starting font
+	fontNumber = 0; // starting index - 0
+	comboFont = comboFonts[0]; // starting font - Tahoma
+	ypos += 5;
 
-	dialog->AddCombo("Combo 1", 90, ypos, 200, 400, comboItems, 0);
-	// Label for the combo box (2 pixels down to centre on the control)
-	ypos += 2;
-	dialog->AddText("Font",     35, ypos,  50, 25);
-	ypos += 35;
-
+	// Label for the combo box
+	dialog->AddText("Combo",     35, ypos, 70, 25);
+	// Combo box (2 pixels up to centre with the text)
+	dialog->AddCombo("Combo 1", 110, ypos-2, 180, 400, comboItems, 0);
+	// Button to submit the combo text entry
+	dialog->AddButton("Combo 1 button", ">", 295, ypos, 30, 25);
+	ypos += 43;
+	
 	//
 	// Edit control for text entry
 	//
-	// Label for the text control
-	dialog->AddText("Text",   35, ypos, 70, 30);
+	// Label for the edit control
+	dialog->AddText("Edit", 35, ypos, 70, 30);
 	// The edit control
 	fontText = "Example text";
-	dialog->AddEdit("Edit 1", 90, ypos, 200, 30, fontText);
+	dialog->AddEdit("Edit 1", 110, ypos, 180, 30, fontText);
 	ypos += 2;
 	// Button to submit the text entry
 	dialog->AddButton("Edit 1 button", ">", 295, ypos, 30, 25);
-	ypos += 70;
+	ypos += 40;
+
+	//
+	// List box
+	//
+
+	//
+	// Prepare item strings for the list box
+	//
+	
+	listItems.push_back("Monday");
+	listItems.push_back("Tuesday");
+	listItems.push_back("Wednesday");
+	listItems.push_back("Thursday");
+	listItems.push_back("Friday");
+	listItems.push_back("Saturday");
+	listItems.push_back("Sunday");
+	listNumber = 0; // starting list index
+	listString = listItems[0]; // starting list string
+
+	// List box
+	dialog->AddText("List",    35, ypos,  70, 30);
+	// Show the first 3 entries
+	dialog->AddList("List 1", 110, ypos, 212, 75, listItems, 0);
+	ypos += 40;
 
 	//
 	// Group box
 	//
 	// Enclose all controls in a group box
 	// A group box name will not conflict with other controls
-	dialog->AddGroup("Options", 25, 105, 345, ypos-120);
+	dialog->AddGroup("Options", 25, 105, 345, ypos-60);
+	ypos += 60;
 
 	//
 	// Push buttons
@@ -224,7 +253,7 @@ void ofApp::CreateAppDialog()
 	// using dialog->Save and dialog->Load
 	dialog->AddButton("Save button", "Save",  140, ypos, 100, 30);
 	dialog->AddButton("Load button", "Load",  245, ypos, 100, 30);
-	ypos += 45;
+	ypos += 35;
 
 	// OK, Cancel, Help
 	dialog->AddButton("OK button", "OK",          35, ypos, 100, 30, BS_DEFPUSHBUTTON);
@@ -254,8 +283,10 @@ void ofApp::CreateAppDialog()
 	dialog->SetSection("Slider 3", "Colour");
 	dialog->SetSection("Slider 4", "Colour");
 	dialog->SetSection("Combo 1", "Font");
-	dialog->SetSection("Edit 1", "Font");
-	dialog->SetSection("Edit 1 button", "Font");
+	dialog->SetSection("Combo 1 button", "Font");
+	dialog->SetSection("Edit 1", "Text");
+	dialog->SetSection("Edit 1 button", "Text");
+	dialog->SetSection("List 1", "Text");
 
 	//
 	// Visual styles
@@ -301,7 +332,7 @@ void ofApp::CreateAppDialog()
 	// For this example, position to the left of the main window.
 	// The dialog is opened/closed by right mouse click.
 	//
-	dialog->SetPosition(-410, 0, 410, 625);
+	dialog->SetPosition(-410, 0, 410, 695);
 
 
 }
@@ -399,11 +430,20 @@ void ofApp::ofxWinDialogFunction(std::string title, std::string text, int value)
 	}
 
 	//
-	// Combo font item selection
+	// Combo item selection
+	// Selects the font to use
 	//
 	if (title == "Combo 1") {
-		fontNumber = value;
+		fontNumber = value;// the selected item
 		comboFont = comboFonts[value]; // the selected font
+	}
+
+	//
+	// List box item selection
+	//
+	if (title == "List 1") {
+		listNumber = value; // the selected item
+		listString = listItems[value]; // the selected item string
 	}
 
 	// Edit control
@@ -416,6 +456,13 @@ void ofApp::ofxWinDialogFunction(std::string title, std::string text, int value)
 	// Push buttons
 	//
 
+	// A button to the right of the combo control
+	// to get the current combo edit text
+	if (title == "Combo 1 button") {
+		std::string text = dialog->GetComboEdit("Combo 1");
+		if (!text.empty())
+			fontText = text;
+	}
 
 	// A button to the right of the edit control
 	// to get the current edit control text
@@ -519,9 +566,13 @@ void ofApp::CreateAppDialog2()
 	ypos += 30;
 	dialog2->AddButton("Button help", "Push button", 75, ypos, 160, 25, BS_DEFPUSHBUTTON);
 	ypos += 30;
+	dialog2->AddButton("Spin help", "Spin control", 75, ypos, 160, 25, BS_DEFPUSHBUTTON);
+	ypos += 30;
 	dialog2->AddButton("Slider help", "Slider", 75, ypos, 160, 25, BS_DEFPUSHBUTTON);
 	ypos += 30;
 	dialog2->AddButton("Combo help", "Combo box", 75, ypos, 160, 25, BS_DEFPUSHBUTTON);
+	ypos += 30;
+	dialog2->AddButton("List help", "List box", 75, ypos, 160, 25, BS_DEFPUSHBUTTON);
 	ypos += 30;
 	dialog2->AddButton("Edit help", "Edit text", 75, ypos, 160, 25, BS_DEFPUSHBUTTON);
 	ypos += 30;
@@ -538,7 +589,7 @@ void ofApp::CreateAppDialog2()
 	dialog2->AddButton("OK button", "OK", 100, ypos, 100, 30, BS_DEFPUSHBUTTON);
 
 	// Centre on the main window
-	dialog2->SetPosition(0, 0, 320, 510);
+	dialog2->SetPosition(0, 0, 320, 575);
 
 }
 
@@ -597,6 +648,21 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 		str += "Add the style as an optional last argument\n\n";
 		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
 	}
+
+	if (title == "Spin help") {
+		str = "A spin cntrol is an up/down button that increments and decrements\n";
+		str += "a value that is shown in an associated text box next to the button.\n";
+		str += "Selecting the up or down button immediately informs ofApp of the change.\n\n";
+		str += "    void AddSpin(std::string title, int x, int y, int width, int height,\n";
+		str += "                 int min, int max, int index, DWORD dwStyle = 0);\n\n";
+		str += "    x, y, width, height - position and dimensions\n";
+		str += "    min, max - range\n";
+		str += "    index - starting value\n";
+		str += "    dwStyle - style is the same as for static text but can include alignment\n";
+		str += "    for the spin control, UDS_ALIGNLEFT or UDS_ALIGNRIGHT (default)\n";
+		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+	}
+
 	if (title == "Slider help") {
 		str = "A slider can have a range of values, min to max,\n";
 		str += "tick marks and tick intervals, and an option to show\n";
@@ -621,16 +687,37 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 	}
 	if (title == "Combo help") {
 		str = "A combo control allows selection from a list of items.\n";
+		str += "The control is a drop-down list with a depth of one item.\n";
 		str += "Each item is a text string and the combo box is initialized\n";
 		str += "with a vector of strings. User combo selection informs ofApp\n";
-		str += "of the item number selected and the string to be used.\n\n";
+		str += "of the item number selected. In the example, the font to be used\n";
+		str += "can be determined from that index.\n\n";
+		str += "The combo box is also an edit control and the text can be changed.\n";
+		str += "In the example there is a button to the right of the combo box that\n";
+		str += "informs ofApp of the edit text.\n\n";
 		str += "    void AddCombo(std::string title, int x, int y, int width, int height,\n";
-		str += "    std::vector<std::string> items, int index);\n\n";
-		str += "        x, y, width, height - position and dimensions\n";
-		str += "        std::vector<std::string> items - vector of string items\n";
-		str += "        index - initial selected index\n\n";
+		str += "                  std::vector<std::string> items, int index);\n\n";
+		str += "    x, y, width, height - position and dimensions\n";
+		str += "    std::vector<std::string> items - vector of string items\n";
+		str += "    index - initial index\n\n";
 		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
 	}
+
+	if (title == "List help") {
+		str = "A list control allows selection from a list of items.\n";
+		str += "The list control is an open list with depth selected when\n";
+		str += "it is created. The list can be scrolled to select the required item.\n";
+		str += "Each item is a text string and the list box is initialized\n";
+		str += "with a vector of strings. User list selection informs ofApp\n";
+		str += "of the item number and string selected.\n\n";
+		str += "    void AddList(std::string title, int x, int y, int width, int height,\n";
+		str += "                 std::vector<std::string> items, int index);\n\n";
+		str += "    x, y, width, height - position and dimensions\n";
+		str += "    std::vector<std::string> items - vector of string items\n";
+		str += "    index - initial index\n\n";
+		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+	}
+		
 	if (title == "Edit help") {
 		str = "An edit control allows entry of text.\n";
 		str += "The control itself does not inform ofApp of change.\n";

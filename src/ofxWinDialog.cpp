@@ -39,6 +39,11 @@
 //				   Convert dialog units to logical units based on screen dpi.
 //				   Add GetFontHeight() function.
 //		23.01.25 - Add Spin control. Update full example.
+//		24.01.25 - Add List box. Add GetListItem, GetListText.
+//				   Enable combo box edit entry. Add GetComboEdit.
+//				   Remove unused GetSpin from header.
+//				   Update help dialog for combo edit, spin control and list box.
+//				   Update full example.
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -261,6 +266,23 @@ void ofxWinDialog::AddCombo(std::string title, int x, int y, int width, int heig
 }
 
 //
+// List box control
+//
+void ofxWinDialog::AddList(std::string title, int x, int y, int width, int height, std::vector<std::string> items, int index)
+{
+	ctl control {};
+	control.Type = "List";
+	control.Title = title;
+	control.Items = items;
+	control.Index = index;
+	control.X = x;
+	control.Y = y;
+	control.Width = width;
+	control.Height = height;
+	controls.push_back(control);
+}
+
+//
 // Spin control
 //
 // x, y, width, height - position and dimensions
@@ -452,6 +474,52 @@ std::string ofxWinDialog::GetComboText(std::string title, int item)
     for (size_t i=0; i<controls.size(); i++) {
         if (controls[i].Type == "Combo") {
             if (controls[i].Title == title) {
+				str = controls[i].Items[item];
+            }
+        }
+    }
+    // Return the current text
+    return str;
+}
+
+// Get combo box edit text
+std::string ofxWinDialog::GetComboEdit(std::string title)
+{
+	std::string str;
+	for (size_t i = 0; i < controls.size(); i++) {
+		if (controls[i].Type == "Combo") {
+			if (controls[i].Title == title) {
+				char tmp[256]{};
+				int len = GetWindowTextA(controls[i].hwndControl, tmp, 256);
+				if (len > 0) str = tmp;
+			}
+		}
+	}
+	// Return the current edit text
+	return str;
+}
+
+// Get current list box item index
+int ofxWinDialog::GetListItem(std::string title)
+{
+    int index = 0;
+    for (size_t i=0; i<controls.size(); i++) {
+        if (controls[i].Type == "List") {
+            if (controls[i].Title == title) {
+                index = controls[i].Index;
+            }
+        }
+    }
+    return index;
+}
+
+// Get list box item text
+std::string ofxWinDialog::GetListText(std::string title, int item)
+{
+    std::string str;
+    for (size_t i=0; i<controls.size(); i++) {
+        if (controls[i].Type == "List") {
+            if (controls[i].Title == title) {
                 str = controls[i].Items[item];
             }
         }
@@ -562,6 +630,20 @@ void ofxWinDialog::SetCombo(std::string title, int item)
     }
 }
 
+// Reset the selected list item index
+void ofxWinDialog::SetList(std::string title, int item)
+{
+	for (size_t i = 0; i < controls.size(); i++) {
+		if (controls[i].Type == "List") {
+			if (controls[i].Title == title && item < (int)controls[i].Items.size()) {
+				// Make the item current
+				controls[i].Index = item;
+				SendMessage(controls[i].hwndControl, (UINT)LB_SETCURSEL, (WPARAM)item, 0L);
+			}
+		}
+	}
+}
+
 // Get current controls
 // This function is called from ofApp to return control values
 void ofxWinDialog::GetControls()
@@ -573,7 +655,7 @@ void ofxWinDialog::GetControls()
             && controls[i].Type != "Button"
             && controls[i].Type != "OK"
             && controls[i].Type != "CANCEL") {
-            if (controls[i].Type == "Combo") {
+			if (controls[i].Type == "Combo" || controls[i].Type == "List") {
                 DialogFunction(controls[i].Title, "", controls[i].Index);
             }
             else if (controls[i].Type == "Slider") {
@@ -666,7 +748,17 @@ void ofxWinDialog::Refresh()
             // Select all text in the edit field
             SendMessage(controls[i].hwndControl, CB_SETEDITSEL, 0, MAKELONG(0, -1));
         }
-        if (controls[i].Type == "Edit") {
+		if (controls[i].Type == "List") {
+			if (!controls[i].Text.empty()) {
+				// Delete the existing item text
+				SendMessage(controls[i].hwndControl, LB_DELETESTRING, controls[i].Index, 0);
+				// Add the new item text
+				SendMessage(controls[i].hwndControl, LB_INSERTSTRING, controls[i].Index, (LPARAM)controls[i].Text.c_str());
+			}
+			// Make the new item current
+			SendMessage(controls[i].hwndControl, (UINT)LB_SETCURSEL, (WPARAM)controls[i].Index, 0L);
+		}
+		if (controls[i].Type == "Edit") {
             SetWindowTextA(controls[i].hwndControl, (LPCSTR)controls[i].Text.c_str());
         }
 		if (controls[i].Type == "Spin") {
@@ -735,7 +827,7 @@ void ofxWinDialog::Save(std::string filename, bool bOverWrite)
             ControlSection = controls[i].Type;
             if (!controls[i].Section.empty()) ControlSection = controls[i].Section;
 
-            if (controls[i].Type == "Combo") {
+            if (controls[i].Type == "Combo" || controls[i].Type == "List") {
                 sprintf_s(tmp, MAX_PATH, "%d", controls[i].Index);
                 WritePrivateProfileStringA((LPCSTR)ControlSection.c_str(), (LPCSTR)controls[i].Title.c_str(), (LPCSTR)tmp, (LPCSTR)inipath.c_str());
             }
@@ -826,7 +918,7 @@ bool ofxWinDialog::Load(std::string filename, std::string section)
             else if (!controls[i].Section.empty()) 
                 ControlSection = controls[i].Section;
 
-            if (controls[i].Type == "Combo") {
+            if (controls[i].Type == "Combo" || controls[i].Type == "List") {
                 if (GetPrivateProfileStringA((LPCSTR)ControlSection.c_str(), (LPCSTR)controls[i].Title.c_str(), NULL, (LPSTR)tmp, MAX_PATH, (LPCSTR)inipath.c_str()) > 0) {
                     if (tmp[0]) controls[i].Index = atoi(tmp);
                 }
@@ -1214,16 +1306,18 @@ HWND ofxWinDialog::Open(std::string title)
             // CBS_DROPDOWNLIST prevents user entry
             // CBS_DROPDOWN allows it
             hwndc = CreateWindowExA(WS_EX_CLIENTEDGE, "COMBOBOX", controls[i].Title.c_str(),
-                WS_TABSTOP | CBS_DROPDOWNLIST | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE,
+                WS_TABSTOP
+				| CBS_DROPDOWN   | CBS_AUTOHSCROLL
+				| CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE,
                 controls[i].X, controls[i].Y, controls[i].Width, controls[i].Height,
                 hwnd, (HMENU)ID, m_hInstance, NULL);
 
             if (hwndc) {
                 // Add combo box items
+				wchar_t itemstr[MAX_PATH] {};
 				if (!controls[i].Items.empty() && controls[i].Items.size() > 0) {
                     for (size_t j = 0; j<controls[i].Items.size(); j++) {
                         // Item string is wide chars for unicode and multi-byte
-                        wchar_t itemstr[MAX_PATH]{};
                         mbstowcs_s(NULL, itemstr, controls[i].Items[j].c_str(), MAX_PATH);
                         SendMessageW(hwndc, (UINT)CB_ADDSTRING, (WPARAM)0, (LPARAM)itemstr);
                     }
@@ -1237,6 +1331,39 @@ HWND ofxWinDialog::Open(std::string title)
                 ID++;
             }
         }
+
+		//
+		// List box control
+		//
+		if (controls[i].Type == "List") {
+			
+			hwndc = CreateWindowExA(WS_EX_CLIENTEDGE, "LISTBOX", controls[i].Title.c_str(),
+				WS_TABSTOP | WS_HSCROLL | WS_VSCROLL | LBS_NOINTEGRALHEIGHT | LBS_NOTIFY | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE,
+				controls[i].X, controls[i].Y, controls[i].Width, controls[i].Height,
+				hwnd, (HMENU)ID, m_hInstance, NULL);
+
+			if (hwndc) {
+				// Add list box items
+				if (!controls[i].Items.empty() && controls[i].Items.size() > 0) {
+					for (size_t j = 0; j < controls[i].Items.size(); j++) {
+						// Item string is wide chars for unicode and multi-byte
+						wchar_t itemstr[MAX_PATH] {};
+						mbstowcs_s(NULL, itemstr, controls[i].Items[j].c_str(), MAX_PATH);
+						int pos = (int)SendMessageW(hwndc, (UINT)LB_ADDSTRING, (WPARAM)0, (LPARAM)itemstr);
+						// Set the index associated with the item
+						SendMessage(hwndc, LB_SETITEMDATA, pos, (LPARAM)j);
+						// Retrieve the index with LB_GETITEMDATA
+					}
+				}
+
+				// Display an initial item in the selection field
+				SendMessage(hwndc, LB_SETCURSEL, (WPARAM)controls[i].Index, (LPARAM)0);
+
+				controls[i].hwndControl = hwndc;
+				controls[i].ID = ID;
+				ID++;
+			}
+		}
 
         //
         // Push button
@@ -1586,17 +1713,34 @@ void ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                  if (HIWORD(wParam) == CBN_SELCHANGE) {
                      // Check all combo controls
                      for (size_t i=0; i<controls.size(); i++) {
-                         if (controls[i].Type == "Combo") {
-                             // Get currently selected combo index
-                             // Allow for error if the user edits the list item
-                             int index = (int)SendMessage(controls[i].hwndControl, (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
-                             if (index != CB_ERR) {
-                                 // Inform ofApp if no error
-                                 DialogFunction(controls[i].Title, "", index);
-                             }
-                             // Reset the control index
-                             controls[i].Index = index;
-                         }
+						 if (LOWORD(wParam) == controls[i].ID) { // ID of the control selected
+							 if (controls[i].Type == "Combo") {
+								 // Get currently selected combo index
+								 int index = (int)SendMessage(controls[i].hwndControl, (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
+								 if (index != CB_ERR) {
+									 // Inform ofApp if no error
+									 // DialogFunction(controls[i].Title, "", index);
+									 DialogFunction(controls[i].Title, controls[i].Text, index);
+								 }
+								 // Reset the control index
+								 controls[i].Index = index;
+
+								 /*
+								 // Restore the edit text
+								 if (len > 0) {
+									 SetWindowTextA(controls[i].hwndControl, tmp);
+								 }
+								 */
+							 }
+							 
+							 if (controls[i].Type == "List") {
+								 int index = (int)SendMessage(controls[i].hwndControl, (UINT)LB_GETCURSEL, (WPARAM)0, (LPARAM)0);
+								 if (index != LB_ERR) {
+									 DialogFunction(controls[i].Title, "", index);
+								 }
+								 controls[i].Index = index;
+							 }
+						 }
                      }
                  }
 

@@ -108,17 +108,20 @@ public:
     void SliderMode(bool bOnce);
         
     //
-    // Edit control text entry
+    // Edit control for text entry
     //
     // Style can be :
     // Text alignment ES_LEFT, ES_RIGHT or ES_CENTER. Default is ES_LEFT.
     // Outline WS_BORDER, WS_DLGFRAME
     void AddEdit(std::string title, int x, int y, int width, int height, std::string text, DWORD dwStyle = 0);
     
-    // Combo box list selection
+    // Combo box
 	void AddCombo(std::string title, int x, int y, int width, int height, std::vector<std::string> items, int index);
 	// For testing
 	void AddCombo(std::string title, int x, int y, int width, int height);
+
+	// List box
+	void AddList(std::string title, int x, int y, int width, int height, std::vector<std::string> items, int index);
 
 	//
 	// Spin control
@@ -170,12 +173,16 @@ public:
     float GetSlider(std::string title);
     // Get edit control text
     std::string GetEdit(std::string title);
-	// Get spin control edit text
-	std::string GetSpin(std::string title);
     // Get current combo box item index
     int GetComboItem(std::string title);
     // Get combo box item text
     std::string GetComboText(std::string title, int item);
+	// Get combo box edit text
+	std::string GetComboEdit(std::string title);
+	// Get current list box item index
+	int GetListItem(std::string title);
+	// Get list box item text
+	std::string GetListText(std::string title, int item);
     // Get all current control values
     void GetControls();
     // Get control number
@@ -195,6 +202,7 @@ public:
     void SetSlider(std::string title, float value);
     void SetEdit(std::string title, std::string text);
     void SetCombo(std::string title, int item);
+	void SetList(std::string title, int item);
 
     // Reset controls with original values
     void Reset();
