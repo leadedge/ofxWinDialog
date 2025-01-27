@@ -44,6 +44,19 @@
 //				   Remove unused GetSpin from header.
 //				   Update help dialog for combo edit, spin control and list box.
 //				   Update full example.
+//		26.01.25 - Add static text colour function - TextColor
+//				   Change class callback function from void to LRESULT
+//				   Change void SetCombo to SetComboItem
+//				   Remove GetComboText.
+//				   Change GetComboItem to get item and text.
+//				   Change Setlist from item to all items.
+//				   Add SetlistItem
+//				   Remove GetListText.
+//				   Change GetListItem to get item and text.
+//				   List selection, return both index and text to ofApp
+//				   Add GetWindow() function
+//				   Add TextColor function
+//				   Move Windows system messages to MainWndProc
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -372,9 +385,18 @@ void ofxWinDialog::AddText(std::string text, int x, int y, int width, int height
     controls.push_back(control);
 }
 
+
+// Static text color
+// Set before AddText
+void ofxWinDialog::TextColor(COLORREF color)
+{
+	g_TextColor = color;
+}
+
 // Hyperlink
 // Title is the text displayed, control text is the action taken
 // If the text is empty, ofApp is notified when the hyperlink is clicked
+// Always centered
 void ofxWinDialog::AddHyperlink(std::string title, std::string text, int x, int y, int width, int height, DWORD dwStyle)
 {
     ctl control{};
@@ -453,33 +475,18 @@ std::string ofxWinDialog::GetEdit(std::string title)
     return str;
 }
 
-// Get current combo box item index
-int ofxWinDialog::GetComboItem(std::string title)
-{
+// Get current combo box item index and text
+int ofxWinDialog::GetComboItem(std::string title, std::string *text) {
     int index = 0;
     for (size_t i=0; i<controls.size(); i++) {
         if (controls[i].Type == "Combo") {
             if (controls[i].Title == title) {
                 index = controls[i].Index;
+				if (text) *text = controls[i].Items[index];
             }
         }
     }
     return index;
-}
-
-// Get combo box item text
-std::string ofxWinDialog::GetComboText(std::string title, int item)
-{
-    std::string str;
-    for (size_t i=0; i<controls.size(); i++) {
-        if (controls[i].Type == "Combo") {
-            if (controls[i].Title == title) {
-				str = controls[i].Items[item];
-            }
-        }
-    }
-    // Return the current text
-    return str;
 }
 
 // Get combo box edit text
@@ -499,33 +506,19 @@ std::string ofxWinDialog::GetComboEdit(std::string title)
 	return str;
 }
 
-// Get current list box item index
-int ofxWinDialog::GetListItem(std::string title)
+// Get current list box item index and text
+int ofxWinDialog::GetListItem(std::string title, std::string *text)
 {
     int index = 0;
     for (size_t i=0; i<controls.size(); i++) {
         if (controls[i].Type == "List") {
             if (controls[i].Title == title) {
                 index = controls[i].Index;
+				if(text) *text = controls[i].Items[index];
             }
         }
     }
     return index;
-}
-
-// Get list box item text
-std::string ofxWinDialog::GetListText(std::string title, int item)
-{
-    std::string str;
-    for (size_t i=0; i<controls.size(); i++) {
-        if (controls[i].Type == "List") {
-            if (controls[i].Title == title) {
-                str = controls[i].Items[item];
-            }
-        }
-    }
-    // Return the item text
-    return str;
 }
 
 // Set a section name for the control in an initialization file
@@ -573,6 +566,18 @@ void ofxWinDialog::SetRadioButton(std::string title, int value)
     } // End all controls
 }
 
+// Change button text
+void ofxWinDialog::SetButton(std::string title, std::string text) {
+	for (size_t i = 0; i < controls.size(); i++) {
+		// Update the checkbox state
+		if (controls[i].Type == "Button") {
+			if (controls[i].Title == title) {
+				SetWindowTextA(controls[i].hwndControl, text.c_str());
+			}
+		}
+	}
+}
+
 // Set slider value
 void ofxWinDialog::SetSlider(std::string title, float value)
 {
@@ -616,8 +621,8 @@ void ofxWinDialog::SetEdit(std::string title, std::string text)
     }
 }
 
-// Reset the selected combo item index
-void ofxWinDialog::SetCombo(std::string title, int item)
+// Set the current combo item
+void ofxWinDialog::SetComboItem(std::string title, int item)
 {
      for (size_t i=0; i<controls.size(); i++) {
         if (controls[i].Type == "Combo") {
@@ -630,15 +635,44 @@ void ofxWinDialog::SetCombo(std::string title, int item)
     }
 }
 
-// Reset the selected list item index
-void ofxWinDialog::SetList(std::string title, int item)
+// Reset the list items
+void ofxWinDialog::SetList(std::string title, std::vector<std::string> items, int index) {
+	// Addlist
+	for (size_t i = 0; i < controls.size(); i++) {
+		if (controls[i].Type == "List") {
+			HWND hwndList = controls[i].hwndControl;
+			SendMessageA(hwndList, LB_RESETCONTENT, 0, 0L);
+			if (items.size() > 0) {
+				for (size_t i = 0; i < items.size(); i++) {
+					int pos = (int)SendMessageA(hwndList, LB_ADDSTRING, 0, (LPARAM)items[i].c_str());
+					SendMessageA(hwndList, LB_SETITEMDATA, pos, (LPARAM)i);
+				}
+				// Highlight the current item
+				SendMessageA(hwndList, LB_SETCURSEL, (WPARAM)index, 0L);
+			}
+		}
+	}
+}
+
+// Set the current list item
+void ofxWinDialog::SetListItem(std::string title, int item)
 {
 	for (size_t i = 0; i < controls.size(); i++) {
 		if (controls[i].Type == "List") {
-			if (controls[i].Title == title && item < (int)controls[i].Items.size()) {
-				// Make the item current
-				controls[i].Index = item;
-				SendMessage(controls[i].hwndControl, (UINT)LB_SETCURSEL, (WPARAM)item, 0L);
+			if (controls[i].Title == title) {
+
+				int listsize = (int)SendMessage(controls[i].hwndControl, (UINT)LB_GETCOUNT, (WPARAM)0, 0L);
+				// LJ DEBUG
+				printf("listsize = %d\n", listsize);
+
+				int current = (int)SendMessage(controls[i].hwndControl, (UINT)LB_GETCURSEL, (WPARAM)0, 0L);
+				printf("current = %d\n", current);
+
+				if (item < listsize) {
+					// Make the item current
+					controls[i].Index = item;
+					SendMessage(controls[i].hwndControl, (UINT)LB_SETCURSEL, (WPARAM)item, 0L);
+				}
 			}
 		}
 	}
@@ -970,6 +1004,12 @@ HICON ofxWinDialog::GetIcon()
     return m_hIcon;
 }
 
+// Get dialog window handle if set
+HWND ofxWinDialog::GetDialogWindow() {
+	return m_hDialog;
+}
+
+
 // Dialog position and size are set before opening the window
 void ofxWinDialog::SetPosition(int x, int y, int width, int height)
 {
@@ -1028,12 +1068,12 @@ HWND ofxWinDialog::Open(std::string title)
 	strcpy_s(titlechars, MAX_PATH, title.c_str());
 	#endif
    
-    // No minimize, maximize or menu
-    // WS_CAPTION | WS_SYSMENU gives a close button and icon
+    // No menu.
+	// WS_CAPTION | WS_SYSMENU gives a close button and icon
     // No WS_VISIBLE - ShowWindow when all controls have been created
 	HWND hwnd = CreateWindow(m_ClassName, titlechars,
-        WS_CAPTION | WS_OVERLAPPED | WS_SYSMENU,
-        xpos, ypos, dialogWidth, dialogHeight,
+		WS_CAPTION | WS_OVERLAPPED | WS_SYSMENU,
+		xpos, ypos, dialogWidth, dialogHeight,
         m_hwnd,      // Parent window
         NULL,        // No menu
         m_hInstance, // Parent instance
@@ -1356,7 +1396,7 @@ HWND ofxWinDialog::Open(std::string title)
 					}
 				}
 
-				// Display an initial item in the selection field
+				// Highlight the current selection (controls[i].Index when added)
 				SendMessage(hwndc, LB_SETCURSEL, (WPARAM)controls[i].Index, (LPARAM)0);
 
 				controls[i].hwndControl = hwndc;
@@ -1419,11 +1459,11 @@ HWND ofxWinDialog::Open(std::string title)
             //	SS_RIGHT  - right aligned
             //	WS_BORDER - outlined
             //	SS_SUNKEN - sunken edge
-            DWORD dwStyle = WS_VISIBLE | WS_CHILD;
-            if (controls[i].Style > 0)
-                dwStyle |= controls[i].Style;
-            else
-                dwStyle |= SS_LEFT;
+			DWORD dwStyle = WS_VISIBLE | WS_CHILD;
+			if (controls[i].Style > 0)
+				dwStyle |= controls[i].Style;
+			else
+				dwStyle |= SS_LEFT;
 
             hwndc = CreateWindowExA(0, "STATIC", controls[i].Text.c_str(),
                 dwStyle,
@@ -1612,11 +1652,27 @@ void ofxWinDialog::DisableTheme(std::string type, std::string title)
 //
 LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	// Check For Windows system messages
+	if(uMsg == WM_SYSCOMMAND) {
+		switch (wParam) { // Check System Calls
+			case SC_SCREENSAVE: // Screensaver Trying To Start?
+			case SC_MONITORPOWER: // Monitor Trying To Enter Powersave?
+				return TRUE; // Prevent From Happening
+			// LJ DEBUG
+			// case SC_MINIMIZE:
+				// printf("SC_MINIMIZE\n");
+				// ShowWindow(hwnd, SW_MINIMIZE);
+				// Handle the minimize action
+				// return DefWindowProc(hwnd, uMsg, wParam, lParam);
+		}
+	}
+
     // Retrieve the instance pointer (ofxWinDialog object)
     ofxWinDialog* pDlg = reinterpret_cast<ofxWinDialog*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
  
     // Pass messages on to the class message handling function
-    if (pDlg) pDlg->WindowProc(hwnd, uMsg, wParam, lParam);
+    if (pDlg)
+		return pDlg->WindowProc(hwnd, uMsg, wParam, lParam);
 
     // Default message handling
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -1625,33 +1681,49 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 //
 // Class window message handling procedure for multiple dialogs
 //
-void ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    LPDRAWITEMSTRUCT lpdis{};
-    HCURSOR cursorHand = NULL;
 
     switch (msg) {
 
+		// Static text colour
+		case WM_CTLCOLORSTATIC: {
+			for (size_t i = 0; i < controls.size(); i++) {
+				if (controls[i].Type == "Static") {
+					HDC hdcStatic = (HDC)wParam;
+					// Index = 1 identifies a hyperlink
+					if (controls[i].Index != 1) {
+						SetTextColor(hdcStatic, g_TextColor);
+						SetBkMode(hdcStatic, TRANSPARENT);
+						// Reset to black
+						g_TextColor = RGB(0, 0, 0);
+						// Return a background brush
+						return (LRESULT)(HBRUSH)(COLOR_WINDOW + 1);
+					}
+				}
+			}
+		}
+		break;
+
         case WM_DRAWITEM:
-            // Received once only
-            cursorHand=LoadCursor(NULL, IDC_HAND);
-            // The blue hyperlink
-            lpdis = (LPDRAWITEMSTRUCT)lParam;
+		{
+			LPDRAWITEMSTRUCT lpdis = (LPDRAWITEMSTRUCT)lParam;
             if (lpdis->itemID == -1) break;
             for (size_t i=0; i<controls.size(); i++) {
                 // Index = 1 identifies the hyperlink
-                if (controls[i].Type == "Static" && controls[i].Index == 1) {
+				if (controls[i].Type == "Static" && controls[i].Index == 1) {
                     if (LOWORD(wParam) == controls[i].ID) {
-                        // Blue colour
+						// The blue hyperlink
                         // Title is the text displayed, control text is the action taken
                         SetTextColor(lpdis->hDC, RGB(40, 100, 190));
                         DrawTextA(lpdis->hDC, controls[i].Title.c_str(), -1, &lpdis->rcItem, DT_CENTER);
                         // Set a hand cursor
-                        SetClassLongPtr(controls[i].hwndControl, GCLP_HCURSOR, (LONG_PTR)cursorHand);
+						SetClassLongPtr(controls[i].hwndControl, GCLP_HCURSOR, (LONG_PTR)LoadCursor(NULL, IDC_HAND));
                     }
                 }
             }
-            break;
+		}
+		return TRUE;
         
         // Check For Windows system messages
         case WM_SYSCOMMAND:
@@ -1659,7 +1731,7 @@ void ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             switch (wParam) {         // Check System Calls
                 case SC_SCREENSAVE:   // Screensaver Trying To Start?
                 case SC_MONITORPOWER: // Monitor Trying To Enter Powersave?
-                    return;           // Prevent From Happening
+                    return TRUE;      // Prevent From Happening
             }
             break;
 
@@ -1687,7 +1759,7 @@ void ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					}
 				}
 			}
-			break;
+			return TRUE;
 
 
          case WM_COMMAND:
@@ -1709,7 +1781,7 @@ void ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                      }
                  }
 
-                 // Combo box
+                 // Combo and list box
                  if (HIWORD(wParam) == CBN_SELCHANGE) {
                      // Check all combo controls
                      for (size_t i=0; i<controls.size(); i++) {
@@ -1724,19 +1796,15 @@ void ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 								 }
 								 // Reset the control index
 								 controls[i].Index = index;
-
-								 /*
-								 // Restore the edit text
-								 if (len > 0) {
-									 SetWindowTextA(controls[i].hwndControl, tmp);
-								 }
-								 */
 							 }
 							 
 							 if (controls[i].Type == "List") {
 								 int index = (int)SendMessage(controls[i].hwndControl, (UINT)LB_GETCURSEL, (WPARAM)0, (LPARAM)0);
 								 if (index != LB_ERR) {
-									 DialogFunction(controls[i].Title, "", index);
+									 char tmp[256]{};
+									 SendMessageA(controls[i].hwndControl, LB_GETTEXT, index, (LPARAM)tmp);
+									 controls[i].Items[index] = tmp ;
+									 DialogFunction(controls[i].Title, tmp, index);
 								 }
 								 controls[i].Index = index;
 							 }
@@ -1815,7 +1883,7 @@ void ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                      // OK and Cancel buttons are handled by ofApp
                  }
              }
-             break;
+			 return TRUE;
 
         case WM_HSCROLL:
 
@@ -1888,17 +1956,18 @@ void ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     }
                 }
             }
-            break;
+			return TRUE;
 
         case WM_CLOSE:
         case WM_DESTROY:
             DestroyWindow(hwnd);
             DialogFunction("WM_DESTROY", "", PtrToUint(m_hDialog));
             m_hDialog = nullptr;
-            break;
+			return TRUE;
     }
 
-    // Static callback handles defaults
+	// Default message handling
+	return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
 

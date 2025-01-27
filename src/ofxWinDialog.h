@@ -18,7 +18,7 @@
 // are generally available and SpoutMessageBox can be used.
 // SpoutUtils includes a manifest for Version 6 common controls.
 // See also "DisableTheme" below.
-#include "../libs/SpoutUtils.h"
+#include "SpoutGL/SpoutUtils.h"
 using namespace spoututils;
 
 class ofApp; // Forward declaration
@@ -30,7 +30,7 @@ class ofxWinDialog {
 public:
 
     // Class message handling procedure to allow multiple dialogs
-    void WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+    LRESULT WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
     
     // Class dialog window handle
     HWND m_hDialog = nullptr;
@@ -50,7 +50,7 @@ public:
     // Trackbar notify mode
     bool bOneClick = false;
 
-    // The ofApp menu function
+    // The ofApp callback function
     void(ofApp::* pAppDialogFunction)(std::string title, std::string text, int value);
 
     // Function from ofApp for return of memu item selection
@@ -84,7 +84,7 @@ public:
     //
     // Style can be BS_DEFPUSHBUTTON for the default button. Default is BS_PUSHBUTTON.
     void AddButton(std::string title, std::string text, int x, int y, int width, int height, DWORD dwStyle = 0);
-    
+
     //
     // Slider
     //
@@ -152,6 +152,9 @@ public:
     // Static text is not a control and has no title
     void AddText(std::string text, int x, int y, int width, int height, DWORD dwStyle = 0);
 
+	// Static text colour
+	void TextColor(COLORREF color);
+
     // Hyperlink
     // Title is displayed, text is the action taken
     // If the text is empty, ofApp is notified when the hyperlink is clicked
@@ -160,7 +163,7 @@ public:
     //	SS_CENTER - centered
     //	SS_RIGHT  - right aligned
     void AddHyperlink(std::string title, std::string text, int x, int y, int width, int height, DWORD dwStyle = 0);
-    
+
     //
     // Get dialog control values
     //
@@ -173,16 +176,15 @@ public:
     float GetSlider(std::string title);
     // Get edit control text
     std::string GetEdit(std::string title);
-    // Get current combo box item index
-    int GetComboItem(std::string title);
-    // Get combo box item text
-    std::string GetComboText(std::string title, int item);
+    // Get current combo box item index and text
+	int GetComboItem(std::string title, std::string * text = nullptr);
+
 	// Get combo box edit text
 	std::string GetComboEdit(std::string title);
-	// Get current list box item index
-	int GetListItem(std::string title);
-	// Get list box item text
-	std::string GetListText(std::string title, int item);
+
+	// Get current list box item index and text
+	int GetListItem(std::string title, std::string *text = nullptr);
+
     // Get all current control values
     void GetControls();
     // Get control number
@@ -198,11 +200,19 @@ public:
 
     void SetCheckBox(std::string title, int value);
     void SetRadioButton(std::string title, int value);
+	void SetButton(std::string title, std::string text);
 
     void SetSlider(std::string title, float value);
     void SetEdit(std::string title, std::string text);
-    void SetCombo(std::string title, int item);
-	void SetList(std::string title, int item);
+
+	// Set the current combo item
+    void SetComboItem(std::string title, int item);
+
+	// Reset the list items
+	void SetList(std::string title, std::vector<std::string> items, int index);
+
+	// Set the current list item
+	void SetListItem(std::string title, int item);
 
     // Reset controls with original values
     void Reset();
@@ -227,6 +237,9 @@ public:
     // Get dialog window icon handle if set
     HICON GetIcon();
 
+	// Get dialog window handle if set
+	HWND GetDialogWindow();
+
     // Set a custom font
     // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-logfonta
     // name    - e.g. "Tahoma", "Ms Shell Dlg" etc.
@@ -249,7 +262,7 @@ public:
     void SetPosition(int x, int y, int width, int height);
 
     // Open dialog window with controls
-    HWND Open(std::string title);
+	HWND Open(std::string title);
 
     // Close dialog window and retain controls
     void Close();
@@ -337,6 +350,10 @@ public:
 	LONG fontheight = 0;
     LONG fontweight = FW_NORMAL;
 	HFONT g_hFont = NULL;
+
+	// Static text colour
+	COLORREF g_TextColor = RGB(0, 0, 0);
+	
 
 
  };
