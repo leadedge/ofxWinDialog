@@ -18,7 +18,7 @@
 // are generally available and SpoutMessageBox can be used.
 // SpoutUtils includes a manifest for Version 6 common controls.
 // See also "DisableTheme" below.
-#include "SpoutGL/SpoutUtils.h"
+#include "../libs/SpoutUtils.h"
 using namespace spoututils;
 
 class ofApp; // Forward declaration
