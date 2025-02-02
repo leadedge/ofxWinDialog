@@ -6,7 +6,7 @@ Can be used together with [ofxWinMenu](https://github.com/leadedge/ofxWinMenu) t
 
 ofxWinDialog has been developed using Visual Studio 2022.
 
-<img  hspace="100" src="https://github.com/user-attachments/assets/36663680-b84e-4f8b-914e-7420643dfa81" width="200"/>
+<img  hspace="100" src="https://github.com/user-attachments/assets/2cbb1a71-5b72-4a58-8661-450f98da0842" width="200"/>
 
 ### Controls :
 - Checkbox
