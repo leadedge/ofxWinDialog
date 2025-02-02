@@ -84,7 +84,7 @@ void ofApp::CreateAppDialog()
 	// Style is the same as for static text but can include alignment
 	// of the spin control : UDS_ALIGNLEFT or UDS_ALIGNRIGHT (default)
 	// A border provides best visibility.
-	dialog->AddSpin("Spin 1", 200, ypos, 45, 25, 0, 10, 0, WS_BORDER | SS_CENTER);
+	dialog->AddSpin("Spin 1", 200, ypos, 45, 26, 0, 10, 0, WS_BORDER | SS_CENTER);
 	ypos += 35;
 
 	//
@@ -136,13 +136,16 @@ void ofApp::CreateAppDialog()
 	// Add a text label to the left of the slider (1 pixel down to centre on the control)
 	// Labels are independent of the slider title. The label is not
 	// a control and the name will not conflict with other controls
+	dialog->SetStaticColor(RGB(255, 0, 0));
 	dialog->AddText("Red",        35, ypos,  70, 25);
 	// Leave a spacing > 30 to show the slider outline when selected
 	ypos += 30;
 	dialog->AddSlider("Slider 2", 90, ypos, 210, 30, 0, 255, green, true, 16);
+	dialog->SetStaticColor(RGB(0, 128, 0));
 	dialog->AddText("Green",      35, ypos,  70, 25);
 	ypos += 30;
 	dialog->AddSlider("Slider 3", 90, ypos, 210, 30, 0, 255, blue, true, 16);
+	dialog->SetStaticColor(RGB(0, 0, 255));
 	dialog->AddText("Blue",       35, ypos,  70, 25);
 	ypos += 30;
 	// Alpha is 0.0 - 1.0 as an example
@@ -153,6 +156,7 @@ void ofApp::CreateAppDialog()
 	dialog->AddSlider("Slider 4", 90, ypos, 210, 30, 0.0, 1.0, start, true, 0.1);
 
 	// Text label to the left of the control
+	dialog->SetStaticColor(RGB(128, 128, 128));
 	dialog->AddText("Alpha",   35, ypos,  70, 25);
 	ypos += 40;
 
@@ -194,10 +198,8 @@ void ofApp::CreateAppDialog()
 	dialog->AddText("Combo",     35, ypos, 70, 25);
 	// Combo box (2 pixels up to centre with the text)
 	dialog->AddCombo("Combo 1", 110, ypos-2, 180, 400, comboItems, 0);
-	// Button to submit the combo text entry
-	dialog->AddButton("Combo 1 button", ">", 295, ypos, 30, 25);
 	ypos += 43;
-	
+
 	//
 	// Edit control for text entry
 	//
@@ -229,9 +231,9 @@ void ofApp::CreateAppDialog()
 	listNumber = 0; // starting list index
 	listString = listItems[0]; // starting list string
 
-	// List box
+	// List box text
 	dialog->AddText("List",    35, ypos,  70, 30);
-	// Show the first 3 entries
+	// Add list box and show the first 3 entries (25 depth each)
 	dialog->AddList("List 1", 110, ypos, 212, 75, listItems, 0);
 	ypos += 40;
 
@@ -283,7 +285,6 @@ void ofApp::CreateAppDialog()
 	dialog->SetSection("Slider 3", "Colour");
 	dialog->SetSection("Slider 4", "Colour");
 	dialog->SetSection("Combo 1", "Font");
-	dialog->SetSection("Combo 1 button", "Font");
 	dialog->SetSection("Edit 1", "Text");
 	dialog->SetSection("Edit 1 button", "Text");
 	dialog->SetSection("List 1", "Text");
@@ -455,14 +456,6 @@ void ofApp::ofxWinDialogFunction(std::string title, std::string text, int value)
 	//
 	// Push buttons
 	//
-
-	// A button to the right of the combo control
-	// to get the current combo edit text
-	if (title == "Combo 1 button") {
-		std::string text = dialog->GetComboEdit("Combo 1");
-		if (!text.empty())
-			fontText = text;
-	}
 
 	// A button to the right of the edit control
 	// to get the current edit control text

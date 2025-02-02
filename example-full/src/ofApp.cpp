@@ -236,11 +236,11 @@ void ofApp::draw() {
 
 		// Draw the font selected from the combo box
 		if (comboFont.isLoaded()) {
+			ofSetColor(0);
 			r = comboFont.getStringBoundingBox(fontText, 0, 0);
 			xpos = ofGetWidth()/2 - (int)(r.getWidth()/2.0);
 			comboFont.drawString(fontText, xpos, 80);
 		}
-
 
 		// Draw the text string selected from the list box
 		ofSetColor(255);
