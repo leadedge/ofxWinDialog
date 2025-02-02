@@ -64,7 +64,7 @@ class ofApp : public ofBaseApp {
 		void CreateAppDialog();
 
 		// Callback function for ofxWinDialog to return control values
-		void ofxWinDialogFunction(string title, std::string, int value);
+		void ofxWinDialogFunction(std::string title, std::string, int value);
 
 		//
 		// Variables for the example

@@ -100,9 +100,11 @@ void ofApp::setup() {
 	//    height - height in logical units
 	//    weight - FW_NORMAL, FW_MEDIUM, FW_BOLD etc. Default FW_NORMAL.
 	// More details : https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-logfonta
-	// The default font is "Ms Shell Dlg".
+	// The default font is "Ms Shell Dlg" 8.
 	// Create a larger font for this example.
-	dialog->SetFont("Tahoma", 21);
+	// Font height is in dialog units (72 per inch)
+	// and adjusts to the screen dots per inch.
+	dialog->SetFont("Tahoma", 11);
 
 	// CreateAppDialog adds controls to the dialog
 	// and sets the dialog size and opening position.
