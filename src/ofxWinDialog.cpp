@@ -67,6 +67,7 @@
 //		30.01.25 - Add EnableControl function
 //		31.01.25 - Add GetDialogWindow function
 //		01.02.25 - Correct SetSpin. Was "List" instead of "Spin"
+//		02.02.25 = Add style option for AddCombo (CBS_DROPDOWN allows user entry)
 //
 
 #include "ofxWinDialog.h"
@@ -273,14 +274,16 @@ void ofxWinDialog::AddEdit(std::string title, int x, int y, int width, int heigh
 
 //
 // Combo box list control
-//
-void ofxWinDialog::AddCombo(std::string title, int x, int y, int width, int height, std::vector<std::string> items, int index)
+// Style CBS_DROPDOWN allows user entry
+// Default is CBS_DROPDOWNLIST which prevents user entry
+void ofxWinDialog::AddCombo(std::string title, int x, int y, int width, int height, std::vector<std::string> items, int index, DWORD dwStyle)
 {
     ctl control{};
     control.Type = "Combo";
     control.Title = title;
     control.Items = items;
     control.Index = index;
+	control.Style = dwStyle;
     control.X=x;
     control.Y=y;
     control.Width=width;
@@ -1398,11 +1401,15 @@ HWND ofxWinDialog::Open(std::string title)
         // Combo box list selection control
         //
         if (controls[i].Type == "Combo") {
-            // CBS_DROPDOWNLIST prevents user entry
-            // CBS_DROPDOWN allows it
+			// Style CBS_DROPDOWN allows user entry
+			// Default is CBS_DROPDOWNLIST which prevents user entry
+			DWORD dwStyle = WS_TABSTOP | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE;
+			if (controls[i].Style > 0)
+				dwStyle |= controls[i].Style;
+			else
+				dwStyle |= CBS_DROPDOWNLIST;
             hwndc = CreateWindowExA(WS_EX_CLIENTEDGE, "COMBOBOX", controls[i].Title.c_str(),
-                WS_TABSTOP | CBS_DROPDOWNLIST | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE,
-                controls[i].X, controls[i].Y, controls[i].Width, controls[i].Height,
+                dwStyle, controls[i].X, controls[i].Y, controls[i].Width, controls[i].Height,
                 hwnd, (HMENU)ID, m_hInstance, NULL);
 
             if (hwndc) {

@@ -116,7 +116,9 @@ public:
     void AddEdit(std::string title, int x, int y, int width, int height, std::string text, DWORD dwStyle = 0);
     
     // Combo box
-	void AddCombo(std::string title, int x, int y, int width, int height, std::vector<std::string> items, int index);
+	// Style CBS_DROPDOWN allows user entry
+	// Default is CBS_DROPDOWNLIST which prevents user entry
+	void AddCombo(std::string title, int x, int y, int width, int height, std::vector<std::string> items, int index, DWORD dwStyle = 0);
 	// For testing
 	void AddCombo(std::string title, int x, int y, int width, int height);
 

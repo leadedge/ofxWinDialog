@@ -197,7 +197,11 @@ void ofApp::CreateAppDialog()
 	// Label for the combo box
 	dialog->AddText("Combo",     35, ypos, 70, 25);
 	// Combo box (2 pixels up to centre with the text)
-	dialog->AddCombo("Combo 1", 110, ypos-2, 180, 400, comboItems, 0);
+	// Style CBS_DROPDOWN allows user entry
+	// Default is CBS_DROPDOWNLIST which prevents user entry
+	dialog->AddCombo("Combo 1", 110, ypos - 2, 180, 400, comboItems, 0, CBS_DROPDOWN);
+	// Button to submit the combo text entry
+	dialog->AddButton("Combo 1 button", ">", 295, ypos, 30, 25);
 	ypos += 43;
 
 	//
@@ -285,6 +289,7 @@ void ofApp::CreateAppDialog()
 	dialog->SetSection("Slider 3", "Colour");
 	dialog->SetSection("Slider 4", "Colour");
 	dialog->SetSection("Combo 1", "Font");
+	dialog->SetSection("Combo 1 button", "Font");
 	dialog->SetSection("Edit 1", "Text");
 	dialog->SetSection("Edit 1 button", "Text");
 	dialog->SetSection("List 1", "Text");
@@ -456,6 +461,13 @@ void ofApp::ofxWinDialogFunction(std::string title, std::string text, int value)
 	//
 	// Push buttons
 	//
+	// A button to the right of the combo control
+	// to get the current combo edit text
+	if (title == "Combo 1 button") {
+		std::string text = dialog->GetComboEdit("Combo 1");
+		if (!text.empty())
+			fontText = text;
+	}
 
 	// A button to the right of the edit control
 	// to get the current edit control text
