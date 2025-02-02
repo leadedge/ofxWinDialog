@@ -35,7 +35,7 @@ public:
     // Class dialog window handle
     HWND m_hDialog = nullptr;
 
-	ofxWinDialog(ofApp * app, HINSTANCE hInstance, HWND hWnd, std::string className = "");
+	ofxWinDialog(ofApp* app, HINSTANCE hInstance, HWND hWnd, std::string className = "");
 
     ~ofxWinDialog();
 
@@ -50,7 +50,7 @@ public:
     // Trackbar notify mode
     bool bOneClick = false;
 
-    // The ofApp callback function
+    // The ofApp menu function
     void(ofApp::* pAppDialogFunction)(std::string title, std::string text, int value);
 
     // Function from ofApp for return of memu item selection
@@ -84,7 +84,7 @@ public:
     //
     // Style can be BS_DEFPUSHBUTTON for the default button. Default is BS_PUSHBUTTON.
     void AddButton(std::string title, std::string text, int x, int y, int width, int height, DWORD dwStyle = 0);
-
+    
     //
     // Slider
     //
@@ -108,7 +108,7 @@ public:
     void SliderMode(bool bOnce);
         
     //
-    // Edit control for text entry
+    // Edit control text entry
     //
     // Style can be :
     // Text alignment ES_LEFT, ES_RIGHT or ES_CENTER. Default is ES_LEFT.
@@ -123,19 +123,11 @@ public:
 	// List box
 	void AddList(std::string title, int x, int y, int width, int height, std::vector<std::string> items, int index);
 
-	//
 	// Spin control
-	//
-	// An up/down spin control increments or decrements
-	// a value that is shown in a a buddy text window
-	// and immediately returns it to ofApp.
-	//    x, y, width, height - position and dimensions
-	//    min, max - range. index - starting value
-	// Style is the same as for static text but can include
-	// spin control alignment UDS_ALIGNLEFT or UDS_ALIGNRIGHT (default)
+	// Style can be UDS_ALIGNLEFT or UDS_ALIGNRIGHT (default)
 	void AddSpin(std::string title, int x, int y, int width, int height,
-		int min, int max, int index, DWORD dwStyle = 0);
-    
+		int min, int max, int value, DWORD dwStyle = 0);
+
     // Static group box
     // A group box is not a control and has no title
     void AddGroup(std::string text, int x, int y, int width, int height);
@@ -149,11 +141,16 @@ public:
     //	WS_BORDER - outlined
     //	SS_SUNKEN - sunken edge
     // Default is left aligned (SS_LEFT)
-    // Static text is not a control and has no title
-    void AddText(std::string text, int x, int y, int width, int height, DWORD dwStyle = 0);
 
-	// Static text colour
-	void TextColor(COLORREF color);
+	// Static text that is not a updated
+	void AddText(std::string text, int x, int y, int width, int height, DWORD dwStyle = 0);
+
+	// Static text with an idependent title that can be updated with SetText
+	void AddText(std::string title, std::string text, int x, int y, int width, int height, DWORD dwStyle = 0);
+
+	// Static text color
+	// Set before AddText
+	void SetStaticColor(COLORREF color);
 
     // Hyperlink
     // Title is displayed, text is the action taken
@@ -164,9 +161,13 @@ public:
     //	SS_RIGHT  - right aligned
     void AddHyperlink(std::string title, std::string text, int x, int y, int width, int height, DWORD dwStyle = 0);
 
+	// Set a section name for the control in an initialization file
+	// Default is the control Type (Edit, Checkbox, Button etc)
+	void SetSection(std::string title, std::string section);
+
     //
     // Get dialog control values
-    //
+	//
 
     // Get checkbox state
     int GetCheckBox(std::string title);
@@ -176,45 +177,40 @@ public:
     float GetSlider(std::string title);
     // Get edit control text
     std::string GetEdit(std::string title);
-    // Get current combo box item index and text
-	int GetComboItem(std::string title, std::string * text = nullptr);
-
+    // Get current combo box item and textx
+	int GetComboItem(std::string title, std::string* text = nullptr);
 	// Get combo box edit text
-	std::string GetComboEdit(std::string title);
-
-	// Get current list box item index and text
-	int GetListItem(std::string title, std::string *text = nullptr);
-
+    std::string GetComboEdit(std::string title);
+	// Get list box item index and text
+	int GetListItem(std::string title, std::string* text = nullptr);
     // Get all current control values
     void GetControls();
-    // Get control number
+    // Get the number of controls
     int GetControlNumber();
+	// Get the dialog window handle
+	HWND GetDialogWindow();
+
 
     //
-    // Set dialog control values
-    //
+	// Set dialog control values
+	//
 
-    // Set a section name for the control in an initialization file
-    // Default is the control Type (Edit, Checkbox, Button etc)
-    void SetSection(std::string title, std::string section);
-
-    void SetCheckBox(std::string title, int value);
+	void SetCheckBox(std::string title, int value);
     void SetRadioButton(std::string title, int value);
 	void SetButton(std::string title, std::string text);
-
     void SetSlider(std::string title, float value);
     void SetEdit(std::string title, std::string text);
-
-	// Set the current combo item
+	void SetText(std::string title, std::string text);
     void SetComboItem(std::string title, int item);
-
-	// Reset the list items
 	void SetList(std::string title, std::vector<std::string> items, int index);
-
-	// Set the current list item
 	void SetListItem(std::string title, int item);
+	void SetSpin(std::string title, int value);
 
-    // Reset controls with original values
+	// Enable/Disable a control
+	// (Except Hyperlink, Static and Group)
+	void EnableControl(std::string title, bool bEnabled);
+
+	// Reset controls with original values
     void Reset();
 
     // Restore controls with old values
@@ -237,14 +233,12 @@ public:
     // Get dialog window icon handle if set
     HICON GetIcon();
 
-	// Get dialog window handle if set
-	HWND GetDialogWindow();
-
     // Set a custom font
     // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-logfonta
     // name    - e.g. "Tahoma", "Ms Shell Dlg" etc.
-    // height  - font height in dialog units
+    // height  - height in logical units
     // weight  - FW_NORMAL, FW_BOLD etc. (default FW_NORMAL)
+	// height in dialog units
 	void SetFont(std::string name, LONG height, LONG weight = FW_NORMAL);
 
 	// Return the font height set
@@ -262,7 +256,7 @@ public:
     void SetPosition(int x, int y, int width, int height);
 
     // Open dialog window with controls
-	HWND Open(std::string title);
+    HWND Open(std::string title);
 
     // Close dialog window and retain controls
     void Close();
@@ -333,9 +327,10 @@ public:
  private:
 
     HWND m_hwnd = NULL; // Parent window handle
-    HINSTANCE m_hInstance = NULL; // Parent instance handle
-    ofApp* pApp = nullptr; // Pointer to access the ofApp class
-    HICON m_hIcon = nullptr; // Dialog icon
+	HINSTANCE m_hInstance = NULL; // Parent instance handle
+	ofApp * pApp = nullptr; // Pointer to access the ofApp class
+	COLORREF g_TextColor = RGB(0, 0, 0); // Static text colour
+	HICON m_hIcon = nullptr; // Dialog icon
     HWND hwndOKButton = NULL;  // OK Button
     HWND hwndCancelButton = NULL;  // Cancel Button
 
@@ -350,10 +345,6 @@ public:
 	LONG fontheight = 0;
     LONG fontweight = FW_NORMAL;
 	HFONT g_hFont = NULL;
-
-	// Static text colour
-	COLORREF g_TextColor = RGB(0, 0, 0);
-	
 
 
  };

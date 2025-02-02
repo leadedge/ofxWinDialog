@@ -39,25 +39,36 @@
 //				   Convert dialog units to logical units based on screen dpi.
 //				   Add GetFontHeight() function.
 //		23.01.25 - Add Spin control. Update full example.
+//				   Change class callback function from void to LRESULT
 //		24.01.25 - Add List box. Add GetListItem, GetListText.
 //				   Enable combo box edit entry. Add GetComboEdit.
 //				   Remove unused GetSpin from header.
 //				   Update help dialog for combo edit, spin control and list box.
 //				   Update full example.
 //		26.01.25 - Add static text colour function - TextColor
-//				   Change class callback function from void to LRESULT
-//				   Change void SetCombo to SetComboItem
-//				   Remove GetComboText.
+//				   Add global variable for static text - g_TextColor
+//				   Change SetCombo to SetComboItem
+//				   Change GetComboText to GetComboEdit
 //				   Change GetComboItem to get item and text.
 //				   Change Setlist from item to all items.
-//				   Add SetlistItem
-//				   Remove GetListText.
+//				   Add SetlistItem 
 //				   Change GetListItem to get item and text.
 //				   List selection, return both index and text to ofApp
-//				   Add GetWindow() function
-//				   Add TextColor function
-//				   Move Windows system messages to MainWndProc
+//				   Move Windows system messages from WindowProc to MainWndProc
+//		28.01.25 - Change TextColor to SetStaticColor
+//				   Update spin control position in WM_NOTIFY
+//				   Change TextColor to SetStaticColor
+//		29.01.25 - Add static text control with a title that can be updated
+//				   Remove SetFocus to parent window after Open
+//				   AddText - Items string vector to RGB value of text colour
+//				   WM_CTCOLORSTATIC - set static text colour from items vector
+//				   Update spin control position in WM_NOTIFY
+//				   Add SetButton function
+//		30.01.25 - Add EnableControl function
+//		31.01.25 - Add GetDialogWindow function
+//		01.02.25 - Correct SetSpin. Was "List" instead of "Spin"
 //
+
 #include "ofxWinDialog.h"
 #include <windows.h>
 #include <stdio.h>
@@ -74,7 +85,7 @@ static HHOOK hMsgHook = NULL;
 // Static window handle for GetKeyMsgProc
 static HWND hwndDialog = NULL;
 
-ofxWinDialog::ofxWinDialog(ofApp * app, HINSTANCE hInstance, HWND hWnd, std::string className)
+ofxWinDialog::ofxWinDialog(ofApp* app, HINSTANCE hInstance, HWND hWnd, std::string className)
 {
 	m_hInstance = hInstance;
 	m_hwnd = hWnd;
@@ -147,8 +158,7 @@ LONG ofxWinDialog::GetFontHeight() {
 }
 
 // Return the logical font handle
-HFONT ofxWinDialog::GetFont()
-{
+HFONT ofxWinDialog::GetFont() {
 	return g_hFont;
 }
 
@@ -278,11 +288,20 @@ void ofxWinDialog::AddCombo(std::string title, int x, int y, int width, int heig
     controls.push_back(control);
 }
 
+// For testing
+void ofxWinDialog::AddCombo(std::string title, int x, int y, int width, int height) {
+
+	std::vector<std::string> items;
+	items.push_back("Item 1");
+	items.push_back("Item 2");
+	items.push_back("Item 3");
+	AddCombo(title, x, y, width, height, items, 0);
+}
+
 //
 // List box control
 //
-void ofxWinDialog::AddList(std::string title, int x, int y, int width, int height, std::vector<std::string> items, int index)
-{
+void ofxWinDialog::AddList(std::string title, int x, int y, int width, int height, std::vector<std::string> items, int index) {
 	ctl control {};
 	control.Type = "List";
 	control.Title = title;
@@ -303,7 +322,8 @@ void ofxWinDialog::AddList(std::string title, int x, int y, int width, int heigh
 // Style can be UDS_ALIGNLEFT or UDS_ALIGNRIGHT (default)
 //
 void ofxWinDialog::AddSpin(std::string title, int x, int y, int width, int height,
-	int min, int max, int value, DWORD dwStyle) {
+	int min, int max, int value, DWORD dwStyle)
+{
 
 	ctl control {};
 	control.Type = "Spin";
@@ -317,17 +337,6 @@ void ofxWinDialog::AddSpin(std::string title, int x, int y, int width, int heigh
 	control.Width = width;
 	control.Height = height;
 	controls.push_back(control);
-
-}
-
-// For testing
-void ofxWinDialog::AddCombo(std::string title, int x, int y, int width, int height) {
-
-	std::vector<std::string> items;
-	items.push_back("Item 1");
-	items.push_back("Item 2");
-	items.push_back("Item 3");
-	AddCombo(title, x, y, width, height, items, 0);
 }
 
 // Push button
@@ -370,33 +379,48 @@ void ofxWinDialog::AddGroup(std::string text, int x, int y, int width, int heigh
 //	  SS_RIGHT  - right aligned
 //	  WS_BORDER - outlined
 //	  SS_SUNKEN - sunken edge
-// Static text is not a control and has no title
-void ofxWinDialog::AddText(std::string text, int x, int y, int width, int height, DWORD dwStyle)
-{
-    ctl control{};
-    control.Type = "Static";
-    control.Title = text;
-    control.Text = text;
-    control.Style = dwStyle;
-    control.X=x;
-    control.Y=y;
-    control.Width=width;
-    control.Height=height;
-    controls.push_back(control);
+
+
+// Static text that is not a updated
+void ofxWinDialog::AddText(std::string text, int x, int y, int width, int height, DWORD dwStyle) {
+	AddText(text, text, x, y, width, height, dwStyle);
 }
 
+// Static text with an idependent title that can be updated with SetText
+// If the text is empty, the title is used for text display
+void ofxWinDialog::AddText(std::string title, std::string text, int x, int y, int width, int height, DWORD dwStyle) {
+	ctl control {};
+	control.Type = "Static";
+	control.Title = title;
+	control.Text = text;
+	control.Style = dwStyle;
+	control.X = x;
+	control.Y = y;
+	control.Width = width;
+	control.Height = height;
+	// Static text colour to items vector used in WM_CTLCOLORSTATIC
+	if (g_TextColor != 0) {
+		std::string str = std::to_string(GetRValue(g_TextColor));
+		control.Items.push_back(str);
+		str = std::to_string(GetGValue(g_TextColor));
+		control.Items.push_back(str);
+		str = std::to_string(GetBValue(g_TextColor));
+		control.Items.push_back(str);
+		g_TextColor = 0;
+	}
+	controls.push_back(control);
+}
 
 // Static text color
 // Set before AddText
-void ofxWinDialog::TextColor(COLORREF color)
-{
+void ofxWinDialog::SetStaticColor(COLORREF color) {
 	g_TextColor = color;
 }
+
 
 // Hyperlink
 // Title is the text displayed, control text is the action taken
 // If the text is empty, ofApp is notified when the hyperlink is clicked
-// Always centered
 void ofxWinDialog::AddHyperlink(std::string title, std::string text, int x, int y, int width, int height, DWORD dwStyle)
 {
     ctl control{};
@@ -476,27 +500,26 @@ std::string ofxWinDialog::GetEdit(std::string title)
 }
 
 // Get current combo box item index and text
-int ofxWinDialog::GetComboItem(std::string title, std::string *text) {
-    int index = 0;
-    for (size_t i=0; i<controls.size(); i++) {
-        if (controls[i].Type == "Combo") {
-            if (controls[i].Title == title) {
-                index = controls[i].Index;
+int ofxWinDialog::GetComboItem(std::string title, std::string * text) {
+	int index = 0;
+	for (size_t i = 0; i < controls.size(); i++) {
+		if (controls[i].Type == "Combo") {
+			if (controls[i].Title == title) {
+				index = controls[i].Index;
 				if (text) *text = controls[i].Items[index];
-            }
-        }
-    }
-    return index;
+			}
+		}
+	}
+	return index;
 }
 
 // Get combo box edit text
-std::string ofxWinDialog::GetComboEdit(std::string title)
-{
+std::string ofxWinDialog::GetComboEdit(std::string title) {
 	std::string str;
 	for (size_t i = 0; i < controls.size(); i++) {
 		if (controls[i].Type == "Combo") {
 			if (controls[i].Title == title) {
-				char tmp[256]{};
+				char tmp[256] {};
 				int len = GetWindowTextA(controls[i].hwndControl, tmp, 256);
 				if (len > 0) str = tmp;
 			}
@@ -507,19 +530,19 @@ std::string ofxWinDialog::GetComboEdit(std::string title)
 }
 
 // Get current list box item index and text
-int ofxWinDialog::GetListItem(std::string title, std::string *text)
-{
-    int index = 0;
-    for (size_t i=0; i<controls.size(); i++) {
-        if (controls[i].Type == "List") {
-            if (controls[i].Title == title) {
-                index = controls[i].Index;
-				if(text) *text = controls[i].Items[index];
-            }
-        }
-    }
-    return index;
+int ofxWinDialog::GetListItem(std::string title, std::string * text) {
+	int index = 0;
+	for (size_t i = 0; i < controls.size(); i++) {
+		if (controls[i].Type == "List") {
+			if (controls[i].Title == title) {
+				index = controls[i].Index;
+				if (text) *text = controls[i].Items[index];
+			}
+		}
+	}
+	return index;
 }
+
 
 // Set a section name for the control in an initialization file
 void ofxWinDialog::SetSection(std::string title, std::string section)
@@ -578,6 +601,22 @@ void ofxWinDialog::SetButton(std::string title, std::string text) {
 	}
 }
 
+// Enable or disable a control
+// Except Hyperlink and Group
+void ofxWinDialog::EnableControl(std::string title, bool bEnabled) {
+	for (size_t i = 0; i < controls.size(); i++) {
+		if (controls[i].Type    != "Hyperlink"
+			&& controls[i].Type != "Group") {
+			if (controls[i].Title == title) {
+				HWND hwnd = controls[i].hwndControl;
+				EnableWindow(hwnd, (BOOL)bEnabled);
+				// Redraw immediately
+				RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASENOW | RDW_INTERNALPAINT);
+			}
+		}
+	}
+}
+
 // Set slider value
 void ofxWinDialog::SetSlider(std::string title, float value)
 {
@@ -621,18 +660,28 @@ void ofxWinDialog::SetEdit(std::string title, std::string text)
     }
 }
 
+void ofxWinDialog::SetText(std::string title, std::string text) {
+	for (size_t i = 0; i < controls.size(); i++) {
+		if (controls[i].Type == "Static") {
+			if (controls[i].Title == title) {
+				SetWindowTextA(controls[i].hwndControl, (LPCSTR)text.c_str());
+				controls[i].Text = text;
+			}
+		}
+	}
+}
+
 // Set the current combo item
-void ofxWinDialog::SetComboItem(std::string title, int item)
-{
-     for (size_t i=0; i<controls.size(); i++) {
-        if (controls[i].Type == "Combo") {
-            if (controls[i].Title == title && item < (int)controls[i].Items.size()) {
-                // Make the item current
-                controls[i].Index = item;
-                SendMessage(controls[i].hwndControl, (UINT)CB_SETCURSEL, (WPARAM)item, 0L);
-            }
-        }
-    }
+void ofxWinDialog::SetComboItem(std::string title, int item) {
+	for (size_t i = 0; i < controls.size(); i++) {
+		if (controls[i].Type == "Combo") {
+			if (controls[i].Title == title && item < (int)controls[i].Items.size()) {
+				// Make the item current
+				controls[i].Index = item;
+				SendMessage(controls[i].hwndControl, (UINT)CB_SETCURSEL, (WPARAM)item, 0L);
+			}
+		}
+	}
 }
 
 // Reset the list items
@@ -662,12 +711,7 @@ void ofxWinDialog::SetListItem(std::string title, int item)
 			if (controls[i].Title == title) {
 
 				int listsize = (int)SendMessage(controls[i].hwndControl, (UINT)LB_GETCOUNT, (WPARAM)0, 0L);
-				// LJ DEBUG
-				printf("listsize = %d\n", listsize);
-
 				int current = (int)SendMessage(controls[i].hwndControl, (UINT)LB_GETCURSEL, (WPARAM)0, 0L);
-				printf("current = %d\n", current);
-
 				if (item < listsize) {
 					// Make the item current
 					controls[i].Index = item;
@@ -677,6 +721,19 @@ void ofxWinDialog::SetListItem(std::string title, int item)
 		}
 	}
 }
+
+// Set spin control value
+void ofxWinDialog::SetSpin(std::string title, int value) {
+	for (size_t i = 0; i < controls.size(); i++) {
+		if (controls[i].Type == "Spin") {
+			if (controls[i].Title == title) {
+				controls[i].Val = value;
+				SendMessageA(controls[i].hwndControl, (UINT)UDM_SETPOS, 0, (LPARAM)controls[i].Val);
+			}
+		}
+	}
+}
+
 
 // Get current controls
 // This function is called from ofApp to return control values
@@ -690,7 +747,7 @@ void ofxWinDialog::GetControls()
             && controls[i].Type != "OK"
             && controls[i].Type != "CANCEL") {
 			if (controls[i].Type == "Combo" || controls[i].Type == "List") {
-                DialogFunction(controls[i].Title, "", controls[i].Index);
+				DialogFunction(controls[i].Title, controls[i].Text, controls[i].Index);
             }
             else if (controls[i].Type == "Slider") {
                 DialogFunction(controls[i].Title, "", (int)(controls[i].SliderVal*100.0f));
@@ -714,15 +771,19 @@ void ofxWinDialog::GetControls()
     }
 }
 
-// Get control number
-// Can be used to find whether controls have
-// been created before opening the dialog
+// Get the number of controls
+// Can be used to find whether controls have been created
 int ofxWinDialog::GetControlNumber()
 {
     return static_cast<int>(controls.size());
 }
 
-// Reset controls with orignalvalues
+// Get the dialog window handle
+HWND ofxWinDialog::GetDialogWindow() {
+	return m_hDialog;
+}
+
+// Reset controls with orignal values
 // ofApp calls GetControls to get the updated values
 // and closes the dialog.
 void ofxWinDialog::Reset()
@@ -753,6 +814,7 @@ void ofxWinDialog::Refresh()
             }
         }
         if (controls[i].Type == "Slider") {
+
             if ((controls[i].Max - controls[i].Min) > 1000.0)
                 SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, (int)controls[i].SliderVal);
             else
@@ -792,7 +854,7 @@ void ofxWinDialog::Refresh()
 			// Make the new item current
 			SendMessage(controls[i].hwndControl, (UINT)LB_SETCURSEL, (WPARAM)controls[i].Index, 0L);
 		}
-		if (controls[i].Type == "Edit") {
+        if (controls[i].Type == "Edit") {
             SetWindowTextA(controls[i].hwndControl, (LPCSTR)controls[i].Text.c_str());
         }
 		if (controls[i].Type == "Spin") {
@@ -882,6 +944,7 @@ void ofxWinDialog::Save(std::string filename, bool bOverWrite)
             }
         }
     }
+
 }
 
 // Load controls from an initialization file
@@ -967,7 +1030,7 @@ bool ofxWinDialog::Load(std::string filename, std::string section)
 					if (tmp[0]) controls[i].Val = atoi(tmp);
 				}
 			}
-			else if (controls[i].Type == "Slider") {
+            else if (controls[i].Type == "Slider") {
                 if (GetPrivateProfileStringA((LPCSTR)ControlSection.c_str(), (LPCSTR)controls[i].Title.c_str(), NULL, (LPSTR)tmp, MAX_PATH, (LPCSTR)inipath.c_str()) > 0) {
                     if (tmp[0]) controls[i].SliderVal = (float)atof(tmp);
                 }
@@ -1003,12 +1066,6 @@ HICON ofxWinDialog::GetIcon()
 {
     return m_hIcon;
 }
-
-// Get dialog window handle if set
-HWND ofxWinDialog::GetDialogWindow() {
-	return m_hDialog;
-}
-
 
 // Dialog position and size are set before opening the window
 void ofxWinDialog::SetPosition(int x, int y, int width, int height)
@@ -1068,12 +1125,12 @@ HWND ofxWinDialog::Open(std::string title)
 	strcpy_s(titlechars, MAX_PATH, title.c_str());
 	#endif
    
-    // No menu.
-	// WS_CAPTION | WS_SYSMENU gives a close button and icon
+    // No minimize, maximize or menu
+    // WS_CAPTION | WS_SYSMENU gives a close button and icon
     // No WS_VISIBLE - ShowWindow when all controls have been created
 	HWND hwnd = CreateWindow(m_ClassName, titlechars,
-		WS_CAPTION | WS_OVERLAPPED | WS_SYSMENU,
-		xpos, ypos, dialogWidth, dialogHeight,
+        WS_CAPTION | WS_OVERLAPPED | WS_SYSMENU,
+        xpos, ypos, dialogWidth, dialogHeight,
         m_hwnd,      // Parent window
         NULL,        // No menu
         m_hInstance, // Parent instance
@@ -1094,9 +1151,6 @@ HWND ofxWinDialog::Open(std::string title)
 
     // Class window handle
     m_hDialog = hwnd;
-
-    // Set focus back to the parent window
-    SetFocus(m_hwnd);
 
     // Dialog window icon if specified
     if (m_hIcon) {
@@ -1225,7 +1279,7 @@ HWND ofxWinDialog::Open(std::string title)
                 if (controls[i].Index > 0) {
                     // Create a static text control to display the value of the slider
                     HWND hwndval = CreateWindowExA(
-						0, "STATIC", "0", WS_CHILD | WS_VISIBLE | WS_CHILD | SS_RIGHT, // right aligned
+                        0, "STATIC", "0", WS_VISIBLE | WS_CHILD | SS_RIGHT, // right aligned
                         controls[i].X + controls[i].Width, controls[i].Y,
                         40, controls[i].Height, hwnd, NULL, m_hInstance, NULL);
                     if (hwndval) {
@@ -1264,6 +1318,7 @@ HWND ofxWinDialog::Open(std::string title)
                 ID++;
             }
         }
+
 
 		//
 		// Spin control
@@ -1346,18 +1401,16 @@ HWND ofxWinDialog::Open(std::string title)
             // CBS_DROPDOWNLIST prevents user entry
             // CBS_DROPDOWN allows it
             hwndc = CreateWindowExA(WS_EX_CLIENTEDGE, "COMBOBOX", controls[i].Title.c_str(),
-                WS_TABSTOP
-				| CBS_DROPDOWN   | CBS_AUTOHSCROLL
-				| CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE,
+                WS_TABSTOP | CBS_DROPDOWNLIST | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE,
                 controls[i].X, controls[i].Y, controls[i].Width, controls[i].Height,
                 hwnd, (HMENU)ID, m_hInstance, NULL);
 
             if (hwndc) {
                 // Add combo box items
-				wchar_t itemstr[MAX_PATH] {};
 				if (!controls[i].Items.empty() && controls[i].Items.size() > 0) {
                     for (size_t j = 0; j<controls[i].Items.size(); j++) {
                         // Item string is wide chars for unicode and multi-byte
+                        wchar_t itemstr[MAX_PATH]{};
                         mbstowcs_s(NULL, itemstr, controls[i].Items[j].c_str(), MAX_PATH);
                         SendMessageW(hwndc, (UINT)CB_ADDSTRING, (WPARAM)0, (LPARAM)itemstr);
                     }
@@ -1371,7 +1424,7 @@ HWND ofxWinDialog::Open(std::string title)
                 ID++;
             }
         }
-
+				
 		//
 		// List box control
 		//
@@ -1459,11 +1512,11 @@ HWND ofxWinDialog::Open(std::string title)
             //	SS_RIGHT  - right aligned
             //	WS_BORDER - outlined
             //	SS_SUNKEN - sunken edge
-			DWORD dwStyle = WS_VISIBLE | WS_CHILD;
-			if (controls[i].Style > 0)
-				dwStyle |= controls[i].Style;
-			else
-				dwStyle |= SS_LEFT;
+            DWORD dwStyle = WS_VISIBLE | WS_CHILD;
+            if (controls[i].Style > 0)
+                dwStyle |= controls[i].Style;
+            else
+                dwStyle |= SS_LEFT;
 
             hwndc = CreateWindowExA(0, "STATIC", controls[i].Text.c_str(),
                 dwStyle,
@@ -1524,10 +1577,10 @@ HWND ofxWinDialog::Open(std::string title)
 
 		 //
 		 // Font height is in dialog units
-		 // Convertfrom dialog units to logical units and adjust for screen dpi.
+		 // Convert from dialog units to logical units and adjust for screen dpi.
 		 // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-logfonta
 		 //
-
+		 //
 		 // Get the screen DPI
 		 HDC hdc = GetDC(NULL);
 		 int dpi = GetDeviceCaps(hdc, LOGPIXELSY);
@@ -1557,8 +1610,7 @@ HWND ofxWinDialog::Open(std::string title)
     ShowWindow(hwnd, SW_SHOWNORMAL);
     UpdateWindow(hwnd);
 
-    // Set focus back to the parent window
-    SetFocus(m_hwnd);
+	SetFocus(hwnd);
 
     return hwnd;
 
@@ -1658,12 +1710,6 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			case SC_SCREENSAVE: // Screensaver Trying To Start?
 			case SC_MONITORPOWER: // Monitor Trying To Enter Powersave?
 				return TRUE; // Prevent From Happening
-			// LJ DEBUG
-			// case SC_MINIMIZE:
-				// printf("SC_MINIMIZE\n");
-				// ShowWindow(hwnd, SW_MINIMIZE);
-				// Handle the minimize action
-				// return DefWindowProc(hwnd, uMsg, wParam, lParam);
 		}
 	}
 
@@ -1683,22 +1729,31 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 //
 LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+    LPDRAWITEMSTRUCT lpdis ={};
+    HCURSOR cursorHand = NULL;
 
     switch (msg) {
 
 		// Static text colour
-		case WM_CTLCOLORSTATIC: {
+		case WM_CTLCOLORSTATIC:
+		{
 			for (size_t i = 0; i < controls.size(); i++) {
 				if (controls[i].Type == "Static") {
-					HDC hdcStatic = (HDC)wParam;
-					// Index = 1 identifies a hyperlink
-					if (controls[i].Index != 1) {
-						SetTextColor(hdcStatic, g_TextColor);
-						SetBkMode(hdcStatic, TRANSPARENT);
-						// Reset to black
-						g_TextColor = RGB(0, 0, 0);
-						// Return a background brush
-						return (LRESULT)(HBRUSH)(COLOR_WINDOW + 1);
+					// lParam has the control window handle
+					if (controls[i].hwndControl == (HWND)lParam) {
+						// RGB text colour is the items vector
+						if (!controls[i].Items.empty()) {
+							COLORREF col = {
+								RGB(atoi(controls[i].Items[0].c_str()),
+									atoi(controls[i].Items[1].c_str()),
+									atoi(controls[i].Items[2].c_str()))
+							};
+							SetTextColor((HDC)wParam, col);
+							SetBkMode((HDC)wParam, TRANSPARENT);
+							// Return a background colour
+							// only if the text colour has been set
+							return (LRESULT)(HBRUSH)(COLOR_WINDOW);
+						}
 					}
 				}
 			}
@@ -1706,34 +1761,26 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 		break;
 
         case WM_DRAWITEM:
-		{
-			LPDRAWITEMSTRUCT lpdis = (LPDRAWITEMSTRUCT)lParam;
+            // Received once only
+            cursorHand=LoadCursor(NULL, IDC_HAND);
+            // The blue hyperlink
+            lpdis = (LPDRAWITEMSTRUCT)lParam;
             if (lpdis->itemID == -1) break;
             for (size_t i=0; i<controls.size(); i++) {
-                // Index = 1 identifies the hyperlink
-				if (controls[i].Type == "Static" && controls[i].Index == 1) {
-                    if (LOWORD(wParam) == controls[i].ID) {
-						// The blue hyperlink
+				// Index = 1 identifies the hyperlink
+                if (controls[i].Type == "Static" && controls[i].Index == 1) {
+					if (LOWORD(wParam) == LOWORD(wParam)) { // Can also be lpdis->CtlID
+                        // Blue colour
                         // Title is the text displayed, control text is the action taken
                         SetTextColor(lpdis->hDC, RGB(40, 100, 190));
                         DrawTextA(lpdis->hDC, controls[i].Title.c_str(), -1, &lpdis->rcItem, DT_CENTER);
                         // Set a hand cursor
-						SetClassLongPtr(controls[i].hwndControl, GCLP_HCURSOR, (LONG_PTR)LoadCursor(NULL, IDC_HAND));
+                        SetClassLongPtr(controls[i].hwndControl, GCLP_HCURSOR, (LONG_PTR)cursorHand);
                     }
                 }
             }
-		}
-		return TRUE;
-        
-        // Check For Windows system messages
-        case WM_SYSCOMMAND:
-
-            switch (wParam) {         // Check System Calls
-                case SC_SCREENSAVE:   // Screensaver Trying To Start?
-                case SC_MONITORPOWER: // Monitor Trying To Enter Powersave?
-                    return TRUE;      // Prevent From Happening
-            }
             break;
+        
 
 		case WM_NOTIFY:
 			{
@@ -1751,6 +1798,8 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 										if (num > (int)controls[i].Max)
 											num = (int)controls[i].Max;
 										controls[i].Val = num;
+										// Update the spin control position
+										SendMessage(controls[i].hwndControl, UDM_SETPOS, 0, (LPARAM)num);
 										// Inform ofApp
 										DialogFunction(controls[i].Title, "", controls[i].Val);
 								}
@@ -1781,34 +1830,33 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                      }
                  }
 
-                 // Combo and list box
+                 // Combo box
                  if (HIWORD(wParam) == CBN_SELCHANGE) {
-                     // Check all combo controls
+                     // Check all combo and list controls
                      for (size_t i=0; i<controls.size(); i++) {
-						 if (LOWORD(wParam) == controls[i].ID) { // ID of the control selected
-							 if (controls[i].Type == "Combo") {
-								 // Get currently selected combo index
-								 int index = (int)SendMessage(controls[i].hwndControl, (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
-								 if (index != CB_ERR) {
-									 // Inform ofApp if no error
-									 // DialogFunction(controls[i].Title, "", index);
-									 DialogFunction(controls[i].Title, controls[i].Text, index);
-								 }
-								 // Reset the control index
-								 controls[i].Index = index;
+                         if (controls[i].Type == "Combo") {
+                             // Get currently selected combo index
+                             // Allow for error if the user edits the list item
+                             int index = (int)SendMessage(controls[i].hwndControl, (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
+                             if (index != CB_ERR) {
+                                 // Inform ofApp if no error
+								 DialogFunction(controls[i].Title, controls[i].Text, index);
+                             }
+                             // Reset the control index
+                             controls[i].Index = index;
+                         }
+
+						 if (controls[i].Type == "List") {
+							 int index = (int)SendMessage(controls[i].hwndControl, (UINT)LB_GETCURSEL, (WPARAM)0, (LPARAM)0);
+							 if (index != LB_ERR) {
+								 char tmp[256] {};
+								 SendMessageA(controls[i].hwndControl, LB_GETTEXT, index, (LPARAM)tmp);
+								 controls[i].Items[index] = tmp;
+								 DialogFunction(controls[i].Title, tmp, index);
 							 }
-							 
-							 if (controls[i].Type == "List") {
-								 int index = (int)SendMessage(controls[i].hwndControl, (UINT)LB_GETCURSEL, (WPARAM)0, (LPARAM)0);
-								 if (index != LB_ERR) {
-									 char tmp[256]{};
-									 SendMessageA(controls[i].hwndControl, LB_GETTEXT, index, (LPARAM)tmp);
-									 controls[i].Items[index] = tmp ;
-									 DialogFunction(controls[i].Title, tmp, index);
-								 }
-								 controls[i].Index = index;
-							 }
+							 controls[i].Index = index;
 						 }
+
                      }
                  }
 
@@ -1883,7 +1931,7 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                      // OK and Cancel buttons are handled by ofApp
                  }
              }
-			 return TRUE;
+             break;
 
         case WM_HSCROLL:
 
@@ -1956,18 +2004,19 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                     }
                 }
             }
-			return TRUE;
+            break;
 
         case WM_CLOSE:
         case WM_DESTROY:
             DestroyWindow(hwnd);
             DialogFunction("WM_DESTROY", "", PtrToUint(m_hDialog));
             m_hDialog = nullptr;
-			return TRUE;
+            break;
     }
 
 	// Default message handling
 	return DefWindowProc(hwnd, msg, wParam, lParam);
+
 }
 
 
