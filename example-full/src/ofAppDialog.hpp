@@ -247,7 +247,7 @@ void ofApp::CreateAppDialog()
 	// Enclose all controls in a group box
 	// A group box name will not conflict with other controls
 	dialog->AddGroup("Options", 25, 105, 345, ypos-60);
-	ypos += 60;
+	ypos += 50;
 
 	//
 	// Push buttons
@@ -262,9 +262,21 @@ void ofApp::CreateAppDialog()
 	ypos += 35;
 
 	// OK, Cancel, Help
-	dialog->AddButton("OK button", "OK",          35, ypos, 100, 30, BS_DEFPUSHBUTTON);
-	dialog->AddButton("Cancel button", "Cancel", 140, ypos, 100, 30);
-	dialog->AddButton("Help button", "Help",     245, ypos, 100, 30);
+	dialog->AddButton("OK button", "OK",          65, ypos,  80, 30, BS_DEFPUSHBUTTON);
+	dialog->AddButton("Cancel button", "Cancel", 150, ypos,  80, 30);
+	dialog->AddButton("Help button", "Help",     235, ypos,  80, 30);
+	ypos += 40;
+
+	// Picture buttons
+	std::string path = GetExePath() + "\\data\\";
+	dialog->ButtonPicture(path + "SantaCruzSunrise.jpg");
+	dialog->AddButton("Image1 button", "",        65, ypos, 80, 40);
+
+	dialog->ButtonPicture(path + "Owlbethere.jpg");
+	dialog->AddButton("Image2 button", "",       150, ypos, 80, 40);
+
+	dialog->ButtonPicture(path + "Sweet dreams are made of leaves.jpg");
+	dialog->AddButton("Image3 button", "",       235, ypos, 80, 40);
 
 	//
 	// Option
@@ -338,7 +350,7 @@ void ofApp::CreateAppDialog()
 	// For this example, position to the left of the main window.
 	// The dialog is opened/closed by right mouse click.
 	//
-	dialog->SetPosition(-410, 0, 410, 695);
+	dialog->SetPosition(-410, 0, 410, 725);
 
 
 }
@@ -544,6 +556,25 @@ void ofApp::ofxWinDialogFunction(std::string title, std::string text, int value)
 		// and open again only if closed
 		if(!hwndDialog2)
 			hwndDialog2 = dialog2->Open("Help");
+	}
+
+	// Picture buttons
+	// See definitions for buttons 
+	std::string path = GetExePath() + "\\data\\";
+	if (title == "Image1 button") {
+		path += "SantaCruzSunrise.jpg";
+		if (_access(path.c_str(), 0) != -1)
+			ShellExecuteA(NULL, "open", path.c_str(), NULL, NULL, SW_SHOWNORMAL);
+	}
+	if (title == "Image2 button") {
+		path += "Owlbethere.jpg";
+		if (_access(path.c_str(), 0) != -1)
+			ShellExecuteA(NULL, "open", path.c_str(), NULL, NULL, SW_SHOWNORMAL);
+	}
+	if (title == "Image3 button") {
+		path += "Sweet dreams are made of leaves.jpg";
+		if (_access(path.c_str(), 0) != -1)
+			ShellExecuteA(NULL, "open", path.c_str(), NULL, NULL, SW_SHOWNORMAL);
 	}
 
 }

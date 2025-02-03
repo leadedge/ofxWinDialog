@@ -68,11 +68,20 @@
 //		31.01.25 - Add GetDialogWindow function
 //		01.02.25 - Correct SetSpin. Was "List" instead of "Spin"
 //		02.02.25 = Add style option for AddCombo (CBS_DROPDOWN allows user entry)
+//		03.02.25 - Add picture buttons.
+//				   Add - ButtonPicture(std::string path)
+//				   Add button text colour to items vector
+//				   Add stb_image.h to libs folder
 //
 
 #include "ofxWinDialog.h"
 #include <windows.h>
 #include <stdio.h>
+
+// To load bmp, jpg, png, tga
+// Must be in the cpp file, not the header
+#define STB_IMAGE_IMPLEMENTATION
+#include "../libs/stb_image.h"
 
 // Main Windows message procedure that forwards
 // messages to the instance's message handler
@@ -344,19 +353,89 @@ void ofxWinDialog::AddSpin(std::string title, int x, int y, int width, int heigh
 
 // Push button
 // Text in the button is independent of the title
-void ofxWinDialog::AddButton(std::string title, std::string text, int x, int y, int width, int height, DWORD dwStyle)
-{
-    ctl control{};
-    control.Type = "Button";
-    control.Title = title;
-    control.Text = text;
-    control.Style = dwStyle;
+void ofxWinDialog::AddButton(std::string title, std::string text, int x, int y, int width, int height, DWORD dwStyle) {
+	ctl control {};
+	control.Type = "Button";
+	control.Title = title;
+	control.Text = text;
+	control.Style = dwStyle;
     control.X=x;
     control.Y=y;
     control.Width=width;
     control.Height=height;
+	// Picture button bitmap used in WM_OWNERDRAW
+	if (g_hBitmap) {
+		control.hwndType = (HWND)g_hBitmap;
+		control.Style |= BS_OWNERDRAW;
+		g_hBitmap = nullptr;
+	}
+	// Button text colour to items vector used in WM_OWNERDRAW
+	if (g_TextColor != 0) {
+		std::string str = std::to_string(GetRValue(g_TextColor));
+		control.Items.push_back(str);
+		str = std::to_string(GetGValue(g_TextColor));
+		control.Items.push_back(str);
+		str = std::to_string(GetBValue(g_TextColor));
+		control.Items.push_back(str);
+		g_TextColor = 0;
+	}
     controls.push_back(control);
 }
+
+// Image file for picture button (bmp, jpg, png, tga)
+// Call before AddButton
+// SetStaticColor can also be used to change the button text
+void ofxWinDialog::ButtonPicture(std::string path)
+{
+	if (_access(path.c_str(), 0) != -1) {
+
+		int width, height, nchannels;
+		unsigned char* imageData = stbi_load(path.c_str(), &width, &height, &nchannels, 0);
+
+		BITMAPINFO bmi;
+		ZeroMemory(&bmi, sizeof(bmi));
+		bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
+		bmi.bmiHeader.biWidth = width;
+		bmi.bmiHeader.biHeight = -height; // Negative to specify top-down bitmap
+		bmi.bmiHeader.biPlanes = 1;
+		bmi.bmiHeader.biBitCount = 24; // 24 bits for RGB (no alpha)
+		bmi.bmiHeader.biCompression = BI_RGB;
+
+		// DIB section
+		void* bits = nullptr;
+		g_hBitmap = CreateDIBSection(
+			NULL, // default device context
+			&bmi, // BITMAPINFO structure
+			DIB_RGB_COLORS, // Colors are in RGB
+			&bits, // Pointer to store the bits
+			NULL, // No bitmap handle (using the direct memory buffer)
+			0 // Unused
+		);
+
+		if (!g_hBitmap)
+			return;
+
+		// Copy the raw image data to the bitmap's bits buffer
+		// Convert from RGB to the correct memory format for the DIB
+		unsigned char * dst = (unsigned char *)bits;
+		for (int y = 0; y < height; ++y) {
+			for (int x = 0; x < width; ++x) {
+				// Copy the RGB data (stb loads as RGB or RGBA)
+				int srcIndex = (y * width + x) * nchannels;
+				int dstIndex = (y * width + x)*3; // 3 bytes per pixel (RGB)
+				dst[dstIndex] = imageData[srcIndex + 2]; // Red
+				dst[dstIndex + 1] = imageData[srcIndex + 1]; // Green
+				dst[dstIndex + 2] = imageData[srcIndex]; // Blue
+			}
+		}
+		stbi_image_free(imageData);
+	}
+	else {
+		g_hBitmap = nullptr;
+	}
+
+}
+
 
 // Static Group box
 // A group box is not a control and has no title
@@ -1768,26 +1847,114 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 		break;
 
         case WM_DRAWITEM:
-            // Received once only
-            cursorHand=LoadCursor(NULL, IDC_HAND);
-            // The blue hyperlink
             lpdis = (LPDRAWITEMSTRUCT)lParam;
             if (lpdis->itemID == -1) break;
+
+			// The blue hyperlink
             for (size_t i=0; i<controls.size(); i++) {
-				// Index = 1 identifies the hyperlink
-                if (controls[i].Type == "Static" && controls[i].Index == 1) {
-					if (LOWORD(wParam) == LOWORD(wParam)) { // Can also be lpdis->CtlID
-                        // Blue colour
-                        // Title is the text displayed, control text is the action taken
-                        SetTextColor(lpdis->hDC, RGB(40, 100, 190));
-                        DrawTextA(lpdis->hDC, controls[i].Title.c_str(), -1, &lpdis->rcItem, DT_CENTER);
-                        // Set a hand cursor
-                        SetClassLongPtr(controls[i].hwndControl, GCLP_HCURSOR, (LONG_PTR)cursorHand);
-                    }
-                }
+				if (controls[i].Type == "Static"
+					&& controls[i].Index == 1 // Index = 1 identifies a hyperlink
+					&& !controls[i].hwndType // Not a button
+					&& LOWORD(wParam) == controls[i].ID) { // Can also be lpdis->CtlID
+
+					// Title is the text displayed, control text is the action taken
+					SetTextColor(lpdis->hDC, RGB(40, 100, 190));
+					DrawTextA(lpdis->hDC, controls[i].Title.c_str(), -1, &lpdis->rcItem, DT_CENTER);
+					// Set a hand cursor
+					cursorHand = LoadCursor(NULL, IDC_HAND);
+					SetClassLongPtr(controls[i].hwndControl, GCLP_HCURSOR, (LONG_PTR)cursorHand);
+
+				} // endif hyperlink
+
+				// Owner draw button
+				else if (controls[i].Type == "Button"
+					&& controls[i].Index != 1 // not a hyperlink
+					&& controls[i].hwndType
+					&& LOWORD(wParam) == controls[i].ID) {
+
+					HDC hdc = lpdis->hDC;
+					RECT rect = lpdis->rcItem; // Button's bounding box
+
+					// Transparent white background
+					SetBkMode(hdc, TRANSPARENT);
+					FillRect(hdc, &rect, (HBRUSH)GetStockObject(WHITE_BRUSH));
+
+					// Bitmap handle set by image load
+					if (controls[i].hwndType) {
+
+						// Draw the image
+						HDC hdcMem = CreateCompatibleDC(hdc);
+						HBITMAP hBitmap = (HBITMAP)controls[i].hwndType;
+						HBITMAP hOldBitmap = (HBITMAP)SelectObject(hdcMem, hBitmap);
+						BITMAP bitmap;
+						GetObject(hBitmap, sizeof(bitmap), &bitmap);
+
+						// Draw the bitmap to fit the button
+						SetStretchBltMode(hdc, COLORONCOLOR); // Fastest method
+						StretchBlt(
+							hdc, // Destination DC (button)
+							0, 0, // Destination position
+							(rect.right - rect.left), // Destination width
+							(rect.bottom - rect.top), // Destination height
+							hdcMem, // Source DC (bitmap)
+							0, 0, // Source position
+							bitmap.bmWidth, // Source width
+							bitmap.bmHeight, // Source height
+							SRCCOPY // Copy operation
+						);
+
+						// Cleanup
+						SelectObject(hdcMem, hOldBitmap);
+						DeleteDC(hdcMem);
+						// Do not delete the bitmap
+						// Keep for repeated button press
+					}
+
+					// Draw the button text if not empty
+					if (!controls[i].Text.empty()) {
+						if (lpdis->itemState & ODS_SELECTED) {
+							// Button pressed
+							SetTextColor(hdc, RGB(0, 0, 0)); // Black text when pressed
+						}
+						else {
+							// Button not pressed
+							if (!controls[i].Items.empty()) {
+								// Text colour has been set by SetStaticColor
+								COLORREF col = {
+									RGB(atoi(controls[i].Items[0].c_str()),
+										atoi(controls[i].Items[1].c_str()),
+										atoi(controls[i].Items[2].c_str()))
+								};
+								SetTextColor(hdc, col);
+							}
+							else {
+								// White text when not pressed
+								SetTextColor(hdc, RGB(255, 255, 255));
+							}
+						}
+						DrawTextA(hdc, controls[i].Text.c_str(), -1, &lpdis->rcItem, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+					}
+				} // endif button
             }
             break;
         
+		case WM_SETCURSOR:
+			for (size_t i = 0; i < controls.size(); i++) {
+				if (controls[i].Type == "Button"
+					&& controls[i].Index != 1 // not a hyperlink
+					&& controls[i].hwndType) { // Owner draw button
+					// Cursor position
+					POINT pt;
+					GetCursorPos(&pt);
+					// If the mouse is over the button, set a hand cursor
+					if (WindowFromPoint(pt) == controls[i].hwndControl) {
+						cursorHand = LoadCursor(NULL, IDC_HAND);
+						SetCursor(cursorHand);
+						return TRUE;
+					}
+				}
+			}
+			break;
 
 		case WM_NOTIFY:
 			{

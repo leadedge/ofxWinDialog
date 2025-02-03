@@ -84,7 +84,12 @@ public:
     //
     // Style can be BS_DEFPUSHBUTTON for the default button. Default is BS_PUSHBUTTON.
     void AddButton(std::string title, std::string text, int x, int y, int width, int height, DWORD dwStyle = 0);
-    
+
+	// Image file for picture button (bmp, jpg, png, tga)
+	// SetStaticColor can also be used to change the button text
+	// Call before AddButton
+	void ButtonPicture(std::string path);
+	
     //
     // Slider
     //
@@ -331,12 +336,14 @@ public:
     HWND m_hwnd = NULL; // Parent window handle
 	HINSTANCE m_hInstance = NULL; // Parent instance handle
 	ofApp * pApp = nullptr; // Pointer to access the ofApp class
-	COLORREF g_TextColor = RGB(0, 0, 0); // Static text colour
 	HICON m_hIcon = nullptr; // Dialog icon
     HWND hwndOKButton = NULL;  // OK Button
     HWND hwndCancelButton = NULL;  // Cancel Button
 
-    // Dialog position and size
+	COLORREF g_TextColor = RGB(0, 0, 0); // Static text colour
+	HBITMAP g_hBitmap = nullptr; // Bitmap handle for owner draw button
+
+	// Dialog position and size
     int dialogX = 0;
     int dialogY = 0;
     int dialogWidth = 0;
