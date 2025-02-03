@@ -6,13 +6,14 @@ Can be used together with [ofxWinMenu](https://github.com/leadedge/ofxWinMenu) t
 
 ofxWinDialog has been developed using Visual Studio 2022.
 
-<img  hspace="100" src="https://github.com/user-attachments/assets/2cbb1a71-5b72-4a58-8661-450f98da0842" width="200"/>
+<img  hspace="100" src="https://github.com/user-attachments/assets/7c0004ed-ae0d-44cc-b113-ccbce460cc49" width="220"/>
 
 ### Controls :
 - Checkbox
 - Radio button group
 - Radio button
 - Push button
+- Picture button
 - Spin control
 - Slider
 - Edit control
@@ -20,6 +21,7 @@ ofxWinDialog has been developed using Visual Studio 2022.
 - List box
 - Group box
 - Static text
+- Text color
 - Hyperlink
 
 ### Setup
