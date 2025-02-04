@@ -85,8 +85,17 @@ public:
     // Style can be BS_DEFPUSHBUTTON for the default button. Default is BS_PUSHBUTTON.
     void AddButton(std::string title, std::string text, int x, int y, int width, int height, DWORD dwStyle = 0);
 
+	// Change button text
+	void SetButton(std::string title, std::string text);
+
+	// Change button background color
+	// Set before AddButton
+	void ButtonColor(int hexcode);
+	void ButtonColor(int red, int grn, int blu);
+	void ButtonColor(COLORREF rgb);
+
 	// Image file for picture button (bmp, jpg, png, tga)
-	// SetStaticColor can also be used to change the button text
+	// TextColor can also be used to change the button text
 	// Call before AddButton
 	void ButtonPicture(std::string path);
 	
@@ -157,7 +166,9 @@ public:
 
 	// Static text color
 	// Set before AddText
-	void SetStaticColor(COLORREF color);
+	void TextColor(int hexcode);
+	void TextColor(int red, int grn, int blu);
+	void TextColor(COLORREF rgb);
 
     // Hyperlink
     // Title is displayed, text is the action taken
@@ -204,7 +215,6 @@ public:
 
 	void SetCheckBox(std::string title, int value);
     void SetRadioButton(std::string title, int value);
-	void SetButton(std::string title, std::string text);
     void SetSlider(std::string title, float value);
     void SetEdit(std::string title, std::string text);
 	void SetText(std::string title, std::string text);
@@ -280,6 +290,13 @@ public:
     // and optional specific control
     void DisableTheme(std::string type="", std::string title="");
 
+	//
+	// Utility
+	//
+	int Rgb2Hex(int r, int g, int b);
+	COLORREF Hex2Rgb(int hex, int* red=nullptr, int* grn=nullptr, int* blu=nullptr);
+
+
     //
     // Control variables
     //
@@ -341,6 +358,7 @@ public:
     HWND hwndCancelButton = NULL;  // Cancel Button
 
 	COLORREF g_TextColor = RGB(0, 0, 0); // Static text colour
+	COLORREF g_ButtonColor = RGB(0, 0, 0); // Button background (default COLOR_BTNFACE);
 	HBITMAP g_hBitmap = nullptr; // Bitmap handle for owner draw button
 
 	// Dialog position and size

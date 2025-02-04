@@ -136,16 +136,16 @@ void ofApp::CreateAppDialog()
 	// Add a text label to the left of the slider (1 pixel down to centre on the control)
 	// Labels are independent of the slider title. The label is not
 	// a control and the name will not conflict with other controls
-	dialog->SetStaticColor(RGB(255, 0, 0));
+	dialog->TextColor(RGB(255, 0, 0));
 	dialog->AddText("Red",        35, ypos,  70, 25);
 	// Leave a spacing > 30 to show the slider outline when selected
 	ypos += 30;
 	dialog->AddSlider("Slider 2", 90, ypos, 210, 30, 0, 255, green, true, 16);
-	dialog->SetStaticColor(RGB(0, 128, 0));
+	dialog->TextColor(RGB(0, 128, 0));
 	dialog->AddText("Green",      35, ypos,  70, 25);
 	ypos += 30;
 	dialog->AddSlider("Slider 3", 90, ypos, 210, 30, 0, 255, blue, true, 16);
-	dialog->SetStaticColor(RGB(0, 0, 255));
+	dialog->TextColor(RGB(0, 0, 255));
 	dialog->AddText("Blue",       35, ypos,  70, 25);
 	ypos += 30;
 	// Alpha is 0.0 - 1.0 as an example
@@ -156,7 +156,7 @@ void ofApp::CreateAppDialog()
 	dialog->AddSlider("Slider 4", 90, ypos, 210, 30, 0.0, 1.0, start, true, 0.1);
 
 	// Text label to the left of the control
-	dialog->SetStaticColor(RGB(128, 128, 128));
+	dialog->TextColor(RGB(128, 128, 128));
 	dialog->AddText("Alpha",   35, ypos,  70, 25);
 	ypos += 40;
 
@@ -254,7 +254,18 @@ void ofApp::CreateAppDialog()
 	//
 	// Reset, Save, Load
 	//
+	// Button background can be defined
+	//     dialog->ButtonColor(int hexcode);
+	//     dialog->ButtonColor(int red, int grn, int blu);
+	//     dialog->ButtonColor(COLORREF col);
+	// html color codes are useful (https://htmlcolorcodes.com/)
+	// Crimson - #DC143C rgb(220, 20, 60)
+	dialog->ButtonColor(0xDC143C);
+	// Default black text can also be changed
+	// Gold - #FFD700 rgb(255, 215, 0)
+	dialog->TextColor(0xFFD700);
 	dialog->AddButton("Reset button", "Reset", 35, ypos, 100, 30);
+
 	// Control status can be saved to and loaded from a configuration file
 	// using dialog->Save and dialog->Load
 	dialog->AddButton("Save button", "Save",  140, ypos, 100, 30);

@@ -72,8 +72,18 @@
 //				   Add - ButtonPicture(std::string path)
 //				   Add button text colour to items vector
 //				   Add stb_image.h to libs folder
+//		04.02.25 - Change SetStaticColor back to TextColor. Add overloads.
+//				      void TextColor(int hexcode);
+//				      void TextColor(int red, int grn, int blu);
+//				      void TextColor(COLORREF rgb);
+//				   Set control text colour from control.item vector to control.Index
+//				   Add utilities : Rgb2Hex and Hex2Rgb
+//				   Add button colour function and overloads.
+//				      void ButtonColor(int hexcode);
+//				      void ButtonColor(int red, int grn, int blu);
+//				      void ButtonColor(COLORREF rgb);
+//				   Set control background colour to control.Val
 //
-
 #include "ofxWinDialog.h"
 #include <windows.h>
 #include <stdio.h>
@@ -363,28 +373,62 @@ void ofxWinDialog::AddButton(std::string title, std::string text, int x, int y, 
     control.Y=y;
     control.Width=width;
     control.Height=height;
+
 	// Picture button bitmap used in WM_OWNERDRAW
 	if (g_hBitmap) {
 		control.hwndType = (HWND)g_hBitmap;
 		control.Style |= BS_OWNERDRAW;
 		g_hBitmap = nullptr;
 	}
-	// Button text colour to items vector used in WM_OWNERDRAW
+
+	// Button background colour
+	// Use control Val (default 0);
+	if (g_ButtonColor != 0) {
+		control.Val = Rgb2Hex(GetRValue(g_ButtonColor),
+			GetGValue(g_ButtonColor), GetBValue(g_ButtonColor));
+		control.Style |= BS_OWNERDRAW;
+		g_ButtonColor = 0;
+	}
+
+	// Button text colour
+	// Use control index (default 0)
 	if (g_TextColor != 0) {
-		std::string str = std::to_string(GetRValue(g_TextColor));
-		control.Items.push_back(str);
-		str = std::to_string(GetGValue(g_TextColor));
-		control.Items.push_back(str);
-		str = std::to_string(GetBValue(g_TextColor));
-		control.Items.push_back(str);
+		control.Index = Rgb2Hex(GetRValue(g_TextColor),
+			GetGValue(g_TextColor), GetBValue(g_TextColor));
+		control.Style |= BS_OWNERDRAW;
 		g_TextColor = 0;
 	}
+
     controls.push_back(control);
+}
+
+// Change button text
+void ofxWinDialog::SetButton(std::string title, std::string text) {
+	for (size_t i = 0; i < controls.size(); i++) {
+		// Update the checkbox state
+		if (controls[i].Type == "Button") {
+			if (controls[i].Title == title) {
+				SetWindowTextA(controls[i].hwndControl, text.c_str());
+			}
+		}
+	}
+}
+
+// Change button background color
+// Set before AddButton
+void ofxWinDialog::ButtonColor(int hexcode) {
+	ButtonColor(Hex2Rgb(hexcode));
+}
+void ofxWinDialog::ButtonColor(int red, int grn, int blu) {
+	ButtonColor(RGB(red, grn, blu));
+}
+void ofxWinDialog::ButtonColor(COLORREF rgb) {
+	g_ButtonColor = rgb;
 }
 
 // Image file for picture button (bmp, jpg, png, tga)
 // Call before AddButton
-// SetStaticColor can also be used to change the button text
+// TextColor can also be used to change the button text
 void ofxWinDialog::ButtonPicture(std::string path)
 {
 	if (_access(path.c_str(), 0) != -1) {
@@ -480,23 +524,28 @@ void ofxWinDialog::AddText(std::string title, std::string text, int x, int y, in
 	control.Y = y;
 	control.Width = width;
 	control.Height = height;
-	// Static text colour to items vector used in WM_CTLCOLORSTATIC
+
+	// Static text colour
+	// Use control index (default 0);
 	if (g_TextColor != 0) {
-		std::string str = std::to_string(GetRValue(g_TextColor));
-		control.Items.push_back(str);
-		str = std::to_string(GetGValue(g_TextColor));
-		control.Items.push_back(str);
-		str = std::to_string(GetBValue(g_TextColor));
-		control.Items.push_back(str);
+		control.Index = Rgb2Hex(GetRValue(g_TextColor),
+			GetGValue(g_TextColor), GetBValue(g_TextColor));
 		g_TextColor = 0;
 	}
+
 	controls.push_back(control);
 }
 
 // Static text color
 // Set before AddText
-void ofxWinDialog::SetStaticColor(COLORREF color) {
-	g_TextColor = color;
+void ofxWinDialog::TextColor(int hexcode) {
+	TextColor(Hex2Rgb(hexcode));
+}
+void ofxWinDialog::TextColor(int red, int grn, int blu) {
+	TextColor(RGB(red, grn, blu));
+}
+void ofxWinDialog::TextColor(COLORREF rgb) {
+	g_TextColor = rgb;
 }
 
 
@@ -669,18 +718,6 @@ void ofxWinDialog::SetRadioButton(std::string title, int value)
             } // End matching title
         } // End radio button controls
     } // End all controls
-}
-
-// Change button text
-void ofxWinDialog::SetButton(std::string title, std::string text) {
-	for (size_t i = 0; i < controls.size(); i++) {
-		// Update the checkbox state
-		if (controls[i].Type == "Button") {
-			if (controls[i].Title == title) {
-				SetWindowTextA(controls[i].hwndControl, text.c_str());
-			}
-		}
-	}
 }
 
 // Enable or disable a control
@@ -1784,6 +1821,26 @@ void ofxWinDialog::DisableTheme(std::string type, std::string title)
     }
 }
 
+//
+// Utility
+//
+int ofxWinDialog::Rgb2Hex(int r, int g, int b)
+{
+	return (r << 16) | (g << 8) | b;
+}
+
+COLORREF ofxWinDialog::Hex2Rgb(int hex, int* red, int* grn, int* blu)
+{
+	int r = (hex >> 16) & 0xFF;
+	int g = (hex >> 8) & 0xFF;
+	int b = hex & 0xFF;
+	if (red != nullptr) {
+		*red = (hex >> 16) & 0xFF;
+		*grn = (hex >> 8) & 0xFF;
+		*blu = hex & 0xFF;
+	}
+	return RGB(r, g, b);
+}
 
 //
 // Windows message callback function
@@ -1827,13 +1884,9 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 				if (controls[i].Type == "Static") {
 					// lParam has the control window handle
 					if (controls[i].hwndControl == (HWND)lParam) {
-						// RGB text colour is the items vector
-						if (!controls[i].Items.empty()) {
-							COLORREF col = {
-								RGB(atoi(controls[i].Items[0].c_str()),
-									atoi(controls[i].Items[1].c_str()),
-									atoi(controls[i].Items[2].c_str()))
-							};
+						// RGB text colour is the Index number (default 0)
+						if (controls[i].Index > 0) {
+							COLORREF col = Hex2Rgb(controls[i].Index);
 							SetTextColor((HDC)wParam, col);
 							SetBkMode((HDC)wParam, TRANSPARENT);
 							// Return a background colour
@@ -1869,67 +1922,79 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 				// Owner draw button
 				else if (controls[i].Type == "Button"
 					&& controls[i].Index != 1 // not a hyperlink
-					&& controls[i].hwndType
 					&& LOWORD(wParam) == controls[i].ID) {
 
 					HDC hdc = lpdis->hDC;
-					RECT rect = lpdis->rcItem; // Button's bounding box
+					RECT rect = lpdis->rcItem; // Button bounding box
 
-					// Transparent white background
-					SetBkMode(hdc, TRANSPARENT);
-					FillRect(hdc, &rect, (HBRUSH)GetStockObject(WHITE_BRUSH));
+					// Backgound colour is control.Val (default 0)
+					if (controls[i].Val > 0) {
+						HBRUSH hBrush = CreateSolidBrush(Hex2Rgb(controls[i].Val));
+						SetBkMode(hdc, TRANSPARENT);
+						FillRect(hdc, &rect, hBrush);
+					}
+					else {
 
-					// Bitmap handle set by image load
-					if (controls[i].hwndType) {
+						// Picture button
+						// Bitmap handle set by image load
+						if (controls[i].hwndType) {
 
-						// Draw the image
-						HDC hdcMem = CreateCompatibleDC(hdc);
-						HBITMAP hBitmap = (HBITMAP)controls[i].hwndType;
-						HBITMAP hOldBitmap = (HBITMAP)SelectObject(hdcMem, hBitmap);
-						BITMAP bitmap;
-						GetObject(hBitmap, sizeof(bitmap), &bitmap);
+							// Transparent white background
+							SetBkMode(hdc, TRANSPARENT);
+							FillRect(hdc, &rect, (HBRUSH)GetStockObject(WHITE_BRUSH));
 
-						// Draw the bitmap to fit the button
-						SetStretchBltMode(hdc, COLORONCOLOR); // Fastest method
-						StretchBlt(
-							hdc, // Destination DC (button)
-							0, 0, // Destination position
-							(rect.right - rect.left), // Destination width
-							(rect.bottom - rect.top), // Destination height
-							hdcMem, // Source DC (bitmap)
-							0, 0, // Source position
-							bitmap.bmWidth, // Source width
-							bitmap.bmHeight, // Source height
-							SRCCOPY // Copy operation
-						);
+							// Draw the image
+							HDC hdcMem = CreateCompatibleDC(hdc);
+							HBITMAP hBitmap = (HBITMAP)controls[i].hwndType;
+							HBITMAP hOldBitmap = (HBITMAP)SelectObject(hdcMem, hBitmap);
+							BITMAP bitmap;
+							GetObject(hBitmap, sizeof(bitmap), &bitmap);
 
-						// Cleanup
-						SelectObject(hdcMem, hOldBitmap);
-						DeleteDC(hdcMem);
-						// Do not delete the bitmap
-						// Keep for repeated button press
+							// Draw the bitmap to fit the button
+							SetStretchBltMode(hdc, COLORONCOLOR); // Fastest method
+							StretchBlt(
+								hdc, // Destination DC (button)
+								0, 0, // Destination position
+								(rect.right - rect.left), // Destination width
+								(rect.bottom - rect.top), // Destination height
+								hdcMem, // Source DC (bitmap)
+								0, 0, // Source position
+								bitmap.bmWidth, // Source width
+								bitmap.bmHeight, // Source height
+								SRCCOPY // Copy operation
+							);
+
+							// Cleanup
+							SelectObject(hdcMem, hOldBitmap);
+							DeleteDC(hdcMem);
+							// Do not delete the bitmap
+							// Keep for repeated button press
+						}
 					}
 
 					// Draw the button text if not empty
 					if (!controls[i].Text.empty()) {
 						if (lpdis->itemState & ODS_SELECTED) {
 							// Button pressed
-							SetTextColor(hdc, RGB(0, 0, 0)); // Black text when pressed
+							if (controls[i].Index > 0) {
+								// Invert colour set by TextColor
+								int inv = controls[i].Index ^ 0xFFFFFF;
+								SetTextColor(hdc, Hex2Rgb(inv));
+							}
+							else {
+								// White when pressed
+								SetTextColor(hdc, RGB(255, 255, 255));
+							}
 						}
 						else {
 							// Button not pressed
-							if (!controls[i].Items.empty()) {
-								// Text colour has been set by SetStaticColor
-								COLORREF col = {
-									RGB(atoi(controls[i].Items[0].c_str()),
-										atoi(controls[i].Items[1].c_str()),
-										atoi(controls[i].Items[2].c_str()))
-								};
-								SetTextColor(hdc, col);
+							if (controls[i].Index > 0) {
+								// Colour set by TextColor in control.Index (default 0)
+								SetTextColor(hdc, Hex2Rgb(controls[i].Index));
 							}
 							else {
-								// White text when not pressed
-								SetTextColor(hdc, RGB(255, 255, 255));
+								// Black when not pressed
+								SetTextColor(hdc, RGB(0, 0, 0));
 							}
 						}
 						DrawTextA(hdc, controls[i].Text.c_str(), -1, &lpdis->rcItem, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
