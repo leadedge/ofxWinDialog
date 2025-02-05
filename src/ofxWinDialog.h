@@ -86,7 +86,7 @@ public:
     void AddButton(std::string title, std::string text, int x, int y, int width, int height, DWORD dwStyle = 0);
 
 	// Change button text
-	void SetButton(std::string title, std::string text);
+	void ButtonText(std::string title, std::string text);
 
 	// Change button background color
 	// Set before AddButton
@@ -293,6 +293,7 @@ public:
 	//
 	// Utility
 	//
+	int Rgb2Hex(COLORREF col);
 	int Rgb2Hex(int r, int g, int b);
 	COLORREF Hex2Rgb(int hex, int* red=nullptr, int* grn=nullptr, int* blu=nullptr);
 

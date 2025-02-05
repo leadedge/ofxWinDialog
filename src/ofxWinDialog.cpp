@@ -83,6 +83,13 @@
 //				      void ButtonColor(int red, int grn, int blu);
 //				      void ButtonColor(COLORREF rgb);
 //				   Set control background colour to control.Val
+//		04.02.25 - Change SetButton to ButtonText
+//				   ButtonText - set control text for owner draw
+//				   Add Rgb2Hex(COLORREF col) overload
+//				   Owner draw button - blue border and dark grey text when pressed
+//		05.02.25 - Darker blue hyperlink colour
+//				   Group caption text colour (use SetColor)
+//				   Correct font in DrawText in WM_DRAW
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -374,14 +381,18 @@ void ofxWinDialog::AddButton(std::string title, std::string text, int x, int y, 
     control.Width=width;
     control.Height=height;
 
-	// Picture button bitmap used in WM_OWNERDRAW
+	//
+	// Custom values used in WM_DRAWITEM
+	//
+
+	// Picture button bitmap (ButtonPicture)
 	if (g_hBitmap) {
 		control.hwndType = (HWND)g_hBitmap;
 		control.Style |= BS_OWNERDRAW;
 		g_hBitmap = nullptr;
 	}
 
-	// Button background colour
+	// Button background colour (ButtonColor)
 	// Use control Val (default 0);
 	if (g_ButtonColor != 0) {
 		control.Val = Rgb2Hex(GetRValue(g_ButtonColor),
@@ -390,7 +401,7 @@ void ofxWinDialog::AddButton(std::string title, std::string text, int x, int y, 
 		g_ButtonColor = 0;
 	}
 
-	// Button text colour
+	// Button text colour (TextColor)
 	// Use control index (default 0)
 	if (g_TextColor != 0) {
 		control.Index = Rgb2Hex(GetRValue(g_TextColor),
@@ -403,12 +414,14 @@ void ofxWinDialog::AddButton(std::string title, std::string text, int x, int y, 
 }
 
 // Change button text
-void ofxWinDialog::SetButton(std::string title, std::string text) {
+void ofxWinDialog::ButtonText(std::string title, std::string text) {
 	for (size_t i = 0; i < controls.size(); i++) {
-		// Update the checkbox state
+		// Update the button text
 		if (controls[i].Type == "Button") {
 			if (controls[i].Title == title) {
 				SetWindowTextA(controls[i].hwndControl, text.c_str());
+				// Set control text for owner draw
+				controls[i].Text = text;
 			}
 		}
 	}
@@ -493,6 +506,15 @@ void ofxWinDialog::AddGroup(std::string text, int x, int y, int width, int heigh
     control.Y=y;
     control.Width=width;
     control.Height=height;
+
+	// Group box caption text colour (TextColor)
+	// Use control index (default 0);
+	if (g_TextColor != 0) {
+		control.Index = Rgb2Hex(GetRValue(g_TextColor),
+			GetGValue(g_TextColor), GetBValue(g_TextColor));
+		g_TextColor = 0;
+	}
+
     controls.push_back(control);
 }
 
@@ -538,6 +560,9 @@ void ofxWinDialog::AddText(std::string title, std::string text, int x, int y, in
 
 // Static text color
 // Set before AddText
+// Reference :
+// https://www.html-color-codes.info/color-names/
+// https://www.computerhope.com/htmcolor.htm
 void ofxWinDialog::TextColor(int hexcode) {
 	TextColor(Hex2Rgb(hexcode));
 }
@@ -1824,6 +1849,10 @@ void ofxWinDialog::DisableTheme(std::string type, std::string title)
 //
 // Utility
 //
+int ofxWinDialog::Rgb2Hex(COLORREF col) {
+	return (GetRValue(col) << 16) | (GetGValue(col) << 8) | GetBValue(col);
+}
+
 int ofxWinDialog::Rgb2Hex(int r, int g, int b)
 {
 	return (r << 16) | (g << 8) | b;
@@ -1856,6 +1885,11 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 	}
 
+	if (uMsg == WM_ERASEBKGND) {
+		if (lParam > 0) {
+			SpoutMessageBox("WM_ERASEBKGND 1"); // - wParam = 0x%X, lParam = 0x%X\n", wParam, lParam);
+		}
+	}
     // Retrieve the instance pointer (ofxWinDialog object)
     ofxWinDialog* pDlg = reinterpret_cast<ofxWinDialog*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
  
@@ -1876,6 +1910,97 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
     HCURSOR cursorHand = NULL;
 
     switch (msg) {
+
+		case WM_PAINT:
+		{
+			// Set the Group box caption colour here
+			// because it is not static text
+			for (size_t i = 0; i < controls.size(); i++) {
+				if (controls[i].Type == "Group") {
+
+					// Text colour for the group box caption
+					// RGB is the hex value of the Index number (default 0)
+					if (controls[i].Index > 0) {
+
+						HWND hwndCtrl = controls[i].hwndControl;
+						PAINTSTRUCT ps;
+						HDC hdc = BeginPaint(hwndCtrl, &ps);
+						HFONT hOldFont = nullptr;
+
+						// Select the dialog font if created
+						if(g_hFont)
+							hOldFont = (HFONT)SelectObject(hdc, g_hFont);
+
+						RECT rect;
+						GetClientRect(hwndCtrl, &rect);
+
+						// Text color for the caption
+						COLORREF col = Hex2Rgb(controls[i].Index);
+						SetTextColor(hdc, col);
+
+						// Set the text background colour to
+						// a background pixel inside the rectangle
+						int x = rect.left   + 4;
+						int y = rect.bottom - 4;
+						col = GetPixel(hdc, x, y);
+						SetBkColor(hdc, col);
+
+						// Warm grey R=212, G=208, B=200.
+						// COLOR_INACTIVECAPTION		: 191, 205, 219 ***
+						// COLOR_INACTIVECAPTIONTEXT	:   0,   0,   0
+						// COLOR_BACKGROUND				:   3, 131, 135
+						// COLOR_MENU					: 240, 240, 240
+						// COLOR_ACTIVEBORDER			: 180, 180, 180
+						// COLOR_INACTIVEBORDER			: 244, 247, 252
+						// CTLCOLOR_LISTBOX				: 153, 180, 209
+						// CTLCOLOR_EDIT				:   3, 131, 135
+						// CTLCOLOR_BTN					: 191, 205, 219 **
+						// COLOR_BTNFACE				: 240, 240, 240
+						// COLOR_BTNHIGHLIGHT			: 255, 255, 255
+						// CTLCOLOR_DLG					: 240, 240, 240
+						// CTLCOLOR_STATIC				: 100, 100, 100
+						// CTLCOLOR_MSGBOX				: 200, 200, 200 **
+						// COLOR_WINDOWFRAME			: 100, 100, 100
+						// COLOR_GRAYTEXT				: 109, 109, 109
+						// COLOR_HOTLIGHT				:   0, 102, 204 (hyperlink)
+
+						// Grey border slightly darker than normal for better visibility
+						// COLOR_INACTIVECAPTION	: 191, 205, 219
+						// COLOR_ACTIVEBORDER		: 180, 180, 180
+						// CTLCOLOR_MSGBOX			: 200, 200, 200
+
+						HBRUSH hBrush = CreateSolidBrush(GetSysColor(CTLCOLOR_MSGBOX));
+						
+						// Move the top of the rect down to center the top border with the caption
+						rect.top += 10;
+						FrameRect(hdc, &rect, hBrush);
+						DeleteObject(hBrush);
+
+						// Text color for the caption
+						col = Hex2Rgb(controls[i].Index);
+						SetTextColor(hdc, col);
+
+						// Set the text background colour to
+						// the pixel in centre of the rectangle
+						x = (rect.right - rect.left) / 2;
+						y = (rect.bottom - rect.top) / 2;
+						col = GetPixel(hdc, x, y);
+						SetBkColor(hdc, col);
+
+						// Draw the caption text
+						rect.top -= 10;
+						DrawTextA(hdc, controls[i].Title.c_str(), -1, &rect, DT_SINGLELINE | DT_LEFT | DT_TOP);
+
+						if (hOldFont)
+							SelectObject(hdc, hOldFont);
+
+						EndPaint(hwndCtrl, &ps);
+
+					}
+				}
+			}
+		}
+		break;
 
 		// Static text colour
 		case WM_CTLCOLORSTATIC:
@@ -1900,6 +2025,7 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 		break;
 
         case WM_DRAWITEM:
+
             lpdis = (LPDRAWITEMSTRUCT)lParam;
             if (lpdis->itemID == -1) break;
 
@@ -1909,14 +2035,18 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 					&& controls[i].Index == 1 // Index = 1 identifies a hyperlink
 					&& !controls[i].hwndType // Not a button
 					&& LOWORD(wParam) == controls[i].ID) { // Can also be lpdis->CtlID
-
 					// Title is the text displayed, control text is the action taken
-					SetTextColor(lpdis->hDC, RGB(40, 100, 190));
+					// COLOR_HOTLIGHT : 0, 102, 204
+					// Other blues :
+					// RGB(51, 102, 204)
+					// RGB(40, 100, 190)
+					// RGB(23,  27, 168)
+					// RGB( 6,  69, 173)
+					SetTextColor(lpdis->hDC, RGB(6, 69, 173));
 					DrawTextA(lpdis->hDC, controls[i].Title.c_str(), -1, &lpdis->rcItem, DT_CENTER);
 					// Set a hand cursor
 					cursorHand = LoadCursor(NULL, IDC_HAND);
 					SetClassLongPtr(controls[i].hwndControl, GCLP_HCURSOR, (LONG_PTR)cursorHand);
-
 				} // endif hyperlink
 
 				// Owner draw button
@@ -1932,6 +2062,7 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 						HBRUSH hBrush = CreateSolidBrush(Hex2Rgb(controls[i].Val));
 						SetBkMode(hdc, TRANSPARENT);
 						FillRect(hdc, &rect, hBrush);
+						DeleteObject(hBrush);
 					}
 					else {
 
@@ -1972,31 +2103,42 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 						}
 					}
 
-					// Draw the button text if not empty
-					if (!controls[i].Text.empty()) {
-						if (lpdis->itemState & ODS_SELECTED) {
-							// Button pressed
+					// Draw the button text and frame
+					if (lpdis->itemState & ODS_SELECTED) {
+						// Button pressed
+						if (!controls[i].Text.empty()) {
 							if (controls[i].Index > 0) {
 								// Invert colour set by TextColor
 								int inv = controls[i].Index ^ 0xFFFFFF;
 								SetTextColor(hdc, Hex2Rgb(inv));
-							}
-							else {
-								// White when pressed
-								SetTextColor(hdc, RGB(255, 255, 255));
+							} else {
+								// Set to dark grey when pressed
+								SetTextColor(hdc, RGB(64, 64, 64));
 							}
 						}
-						else {
-							// Button not pressed
+						// Blue border when pressed
+						HBRUSH hBrush = CreateSolidBrush(RGB(0, 120, 215));
+						FrameRect(hdc, &rect, hBrush);
+						DeleteObject(hBrush);
+					} // endif pressed
+					else {
+
+						// Button not pressed
+						if (!controls[i].Text.empty()) {
 							if (controls[i].Index > 0) {
 								// Colour set by TextColor in control.Index (default 0)
 								SetTextColor(hdc, Hex2Rgb(controls[i].Index));
-							}
-							else {
+							} else {
 								// Black when not pressed
 								SetTextColor(hdc, RGB(0, 0, 0));
 							}
 						}
+						// Grey border when not pressed
+						HBRUSH hBrush = CreateSolidBrush(RGB(169, 169, 169));
+						FrameRect(hdc, &rect, hBrush);
+						DeleteObject(hBrush);
+					} // endif not pressed
+					if (!controls[i].Text.empty()) {
 						DrawTextA(hdc, controls[i].Text.c_str(), -1, &lpdis->rcItem, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 					}
 				} // endif button
@@ -2007,7 +2149,7 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 			for (size_t i = 0; i < controls.size(); i++) {
 				if (controls[i].Type == "Button"
 					&& controls[i].Index != 1 // not a hyperlink
-					&& controls[i].hwndType) { // Owner draw button
+					&& (controls[i].hwndType || controls[i].Val > 1) ) { // Owner draw button
 					// Cursor position
 					POINT pt;
 					GetCursorPos(&pt);

@@ -246,48 +246,44 @@ void ofApp::CreateAppDialog()
 	//
 	// Enclose all controls in a group box
 	// A group box name will not conflict with other controls
+	// The group caption text colour can be changed
+	dialog->TextColor(0xB22222); // FireBrick
 	dialog->AddGroup("Options", 25, 105, 345, ypos-60);
-	ypos += 50;
+	ypos += 60;
 
 	//
 	// Push buttons
 	//
-	// Reset, Save, Load
+	// Save, Load, Reset
 	//
+	// Control status can be saved to and loaded from a configuration file
+	// using dialog->Save and dialog->Load
+	dialog->AddButton("Save button", "Save",   35, ypos, 100, 30);
+	dialog->AddButton("Load button", "Load",  140, ypos, 100, 30);
+
 	// Button background can be defined
 	//     dialog->ButtonColor(int hexcode);
 	//     dialog->ButtonColor(int red, int grn, int blu);
 	//     dialog->ButtonColor(COLORREF col);
 	// html color codes are useful (https://htmlcolorcodes.com/)
-	// Crimson - #DC143C rgb(220, 20, 60)
-	dialog->ButtonColor(0xDC143C);
+	// FireBrick - #B22222 RGB(178, 34, 34)
+	dialog->ButtonColor(0xB22222);
 	// Default black text can also be changed
-	// Gold - #FFD700 rgb(255, 215, 0)
-	dialog->TextColor(0xFFD700);
-	dialog->AddButton("Reset button", "Reset", 35, ypos, 100, 30);
-
-	// Control status can be saved to and loaded from a configuration file
-	// using dialog->Save and dialog->Load
-	dialog->AddButton("Save button", "Save",  140, ypos, 100, 30);
-	dialog->AddButton("Load button", "Load",  245, ypos, 100, 30);
-	ypos += 35;
-
-	// OK, Cancel, Help
-	dialog->AddButton("OK button", "OK",          65, ypos,  80, 30, BS_DEFPUSHBUTTON);
-	dialog->AddButton("Cancel button", "Cancel", 150, ypos,  80, 30);
-	dialog->AddButton("Help button", "Help",     235, ypos,  80, 30);
+	// to stand out from the background
+	dialog->TextColor(0xDCDCDC);
+	dialog->AddButton("Reset button", "Reset", 245, ypos, 100, 30);
 	ypos += 40;
 
-	// Picture buttons
+	// OK, Cancel, Help
+	dialog->AddButton("OK button", "OK",          35, ypos,  75, 42, BS_DEFPUSHBUTTON);
+	dialog->AddButton("Cancel button", "Cancel", 112, ypos,  75, 42);
+	dialog->AddButton("Help button", "Help",     191, ypos,  75, 42);
+
+	// Picture button example
 	std::string path = GetExePath() + "\\data\\";
-	dialog->ButtonPicture(path + "SantaCruzSunrise.jpg");
-	dialog->AddButton("Image1 button", "",        65, ypos, 80, 40);
-
 	dialog->ButtonPicture(path + "Owlbethere.jpg");
-	dialog->AddButton("Image2 button", "",       150, ypos, 80, 40);
+	dialog->AddButton("Image2 button", "",       270, ypos, 74, 42);
 
-	dialog->ButtonPicture(path + "Sweet dreams are made of leaves.jpg");
-	dialog->AddButton("Image3 button", "",       235, ypos, 80, 40);
 
 	//
 	// Option
@@ -361,7 +357,7 @@ void ofApp::CreateAppDialog()
 	// For this example, position to the left of the main window.
 	// The dialog is opened/closed by right mouse click.
 	//
-	dialog->SetPosition(-410, 0, 410, 725);
+	dialog->SetPosition(-410, 0, 410, 705);
 
 
 }
