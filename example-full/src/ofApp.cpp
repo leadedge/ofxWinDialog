@@ -140,7 +140,29 @@ void ofApp::setup() {
 	dialog2->AppDialogFunction(&ofApp::ofxWinDialogFunction2);
 	// Windows information icon, no custom font
 	dialog2->SetIcon(LoadIcon(NULL, IDI_INFORMATION));
+
+	// The dialog background can be defined as
+	// hex, red,green,blue or a COLORREF value
+	//     dialog->BackGroundColor(int hexcode);
+	//     dialog->BackGroundColor(int red, int grn, int blu);
+	//     dialog->BackGroundColor(COLORREF col);
+	// Useful references :
+	//     https://www.html-color-codes.info/color-names/
+	//     https://www.computerhope.com/htmcolor.htm
+	//
+	// Light is best for the dialog
+	dialog2->BackGroundColor(0xF7E7CE); // Champagne - RGB(247, 231, 206)
+	// Windows system colours can be used (see WinUser.h):
+	// dialog2->BackGroundColor(GetSysColor(CTLCOLOR_BTN)); // Light blue
+	//
+	// Text and Button colour can also be specified
+	// Darker colours can be used for text and buttons
+	// (see ofAppDialog.hpp)
+	//     dialog->TextColor
+	//     dialog->ButtonColor
+
 	// Add controls to dialog2 and centre on the main window
+	// Click the "Help" button to open it
 	CreateAppDialog2();
 
 	//

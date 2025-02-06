@@ -35,7 +35,9 @@ public:
     // Class dialog window handle
     HWND m_hDialog = nullptr;
 
-	ofxWinDialog(ofApp* app, HINSTANCE hInstance, HWND hWnd, std::string className = "");
+	// Constructor
+	// Optional class name for multiple dialogs and background colour in hex
+	ofxWinDialog(ofApp * app, HINSTANCE hInstance, HWND hWnd, std::string className="", int background=0);
 
     ~ofxWinDialog();
 
@@ -264,6 +266,11 @@ public:
 	// Return the logical font handle after window creation
 	HFONT GetFont();
 
+	// Dialog background colour
+	void BackGroundColor(int background);
+	void BackGroundColor(int red, int grn, int blu);
+	void BackGroundColor(COLORREF rgb);
+
     // Set dialog position and size
     //  o If x and y are both positive, that position is used
     //  o If x and y are both zero, centre on the host window
@@ -357,7 +364,8 @@ public:
 	HICON m_hIcon = nullptr; // Dialog icon
     HWND hwndOKButton = NULL;  // OK Button
     HWND hwndCancelButton = NULL;  // Cancel Button
-
+	HBRUSH g_hBrush = NULL; // Dialog background brush
+	
 	COLORREF g_TextColor = RGB(0, 0, 0); // Static text colour
 	COLORREF g_ButtonColor = RGB(0, 0, 0); // Button background (default COLOR_BTNFACE);
 	HBITMAP g_hBitmap = nullptr; // Bitmap handle for owner draw button
@@ -373,6 +381,10 @@ public:
 	LONG fontheight = 0;
     LONG fontweight = FW_NORMAL;
 	HFONT g_hFont = NULL;
+
+	// Register dialog window
+	bool RegisterDialog();
+	bool bRegistered = false;
 
 
  };

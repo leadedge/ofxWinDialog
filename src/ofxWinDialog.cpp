@@ -90,6 +90,11 @@
 //		05.02.25 - Darker blue hyperlink colour
 //				   Group caption text colour (use SetColor)
 //				   Correct font in DrawText in WM_DRAW
+//		06.02.25 - Move dialog window registration to Open - RegisterDialog
+//				   Dialog background colour - BackGroundColor
+//				   Add global background brush - g_hBrush
+//				   Add WM_CTLBUTTON to handle control background brush
+//				   Remove WM_ERASEBKGND debug messagebox from MainWindowProc
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -112,22 +117,19 @@ static HHOOK hMsgHook = NULL;
 // Static window handle for GetKeyMsgProc
 static HWND hwndDialog = NULL;
 
-ofxWinDialog::ofxWinDialog(ofApp* app, HINSTANCE hInstance, HWND hWnd, std::string className)
+ofxWinDialog::ofxWinDialog(ofApp* app, HINSTANCE hInstance,
+	HWND hWnd, std::string className, int background)
 {
 	m_hInstance = hInstance;
 	m_hwnd = hWnd;
-
 	pApp = app; // The ofApp class pointer
+
+	// Default background brush is COLOR_WINDOW
+	g_hBrush = CreateSolidBrush(GetSysColor(COLOR_WINDOW));
 
 	// ofApp callback function for return of control values
 	// Set by AppDialogFunction
 	pAppDialogFunction = nullptr;
-
-	WNDCLASS wndClass{0};
-
-	// Main Windows message handling procedure
-	// to forward messages to the class message procedure
-	wndClass.lpfnWndProc = MainWndProc;
 
 	// Window class name for mutltiple dialogs
 	#ifdef UNICODE
@@ -143,31 +145,49 @@ ofxWinDialog::ofxWinDialog(ofApp* app, HINSTANCE hInstance, HWND hWnd, std::stri
 			strcpy_s(m_ClassName, MAX_LOADSTRING, "ofxWinDialogClass");
 	#endif
 
-	wndClass.lpszClassName = m_ClassName;
-    wndClass.hInstance = hInstance;
-    wndClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wndClass.hbrBackground = (HBRUSH)(COLOR_WINDOW); // Control background color
-
-    // Register the window class
-    if (!RegisterClass(&wndClass)) {
-        MessageBoxA(NULL, "Dialog window class registration failed", "Error", MB_OK | MB_ICONERROR);
-        return;
-    }
-
     // Create the message hook to enable the tab key
-    if (!hMsgHook) {
-        hMsgHook = SetWindowsHookEx(WH_GETMESSAGE, GetKeyMsgProc, NULL, GetCurrentThreadId());
-    }
-}
+	if (!hMsgHook) {
+		hMsgHook = SetWindowsHookEx(WH_GETMESSAGE, GetKeyMsgProc, NULL, GetCurrentThreadId());
+	}
 
+	// Window is registered by "RegisterDialog" in Open
+
+}
 
 ofxWinDialog::~ofxWinDialog() {
     // Close the dialog window
     if(m_hDialog) SendMessage(m_hDialog, WM_CLOSE, 0, 0);
     // Unregister the window class
-    UnregisterClass(m_ClassName, m_hInstance);
+	if(bRegistered) UnregisterClass(m_ClassName, m_hInstance);
     // Release message hook
     if (hMsgHook) UnhookWindowsHookEx(hMsgHook);
+}
+
+bool ofxWinDialog::RegisterDialog()
+{
+	WNDCLASS wndClass{};
+
+	// Main Windows message handling procedure
+	// to forward messages to the class message procedure
+	wndClass.lpfnWndProc = MainWndProc;
+	// Optional class name for multiple dialogs
+	wndClass.lpszClassName = m_ClassName;
+    wndClass.hInstance = m_hInstance;
+    wndClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+	// Background colour brush can be set by "BackGroundColor" 
+	// Default brush is set in constructor(COLOR_WINDOW)
+	wndClass.hbrBackground = g_hBrush;
+
+    // Register the window class
+    if (!RegisterClass(&wndClass)) {
+        MessageBoxA(NULL, "Dialog window class registration failed", "Error", MB_OK | MB_ICONERROR);
+        return false;
+    }
+
+	// For the destructor
+	bRegistered = true;
+	return true;
+
 }
 
 // Set a custom font
@@ -187,6 +207,18 @@ LONG ofxWinDialog::GetFontHeight() {
 // Return the logical font handle
 HFONT ofxWinDialog::GetFont() {
 	return g_hFont;
+}
+
+// Dialog background colour
+// Set before Open
+void ofxWinDialog::BackGroundColor(int hexcode) {
+	g_hBrush = CreateSolidBrush(Hex2Rgb(hexcode));
+}
+void ofxWinDialog::BackGroundColor(int red, int grn, int blu) {
+	g_hBrush = CreateSolidBrush(RGB(red, grn, blu));
+}
+void ofxWinDialog::BackGroundColor(COLORREF rgb) {
+	g_hBrush = CreateSolidBrush(rgb);
 }
 
 // Checkbox
@@ -1228,6 +1260,12 @@ HWND ofxWinDialog::Open(std::string title)
     if (dialogWidth == 0 || dialogHeight == 0)
         return NULL;
 
+	// Register the dialog window if not already
+	if (!bRegistered) {
+		if (!RegisterDialog())
+			return NULL;
+	}
+
     // Parent window size
     RECT rect{};
     GetWindowRect(m_hwnd, &rect);
@@ -1679,8 +1717,7 @@ HWND ofxWinDialog::Open(std::string title)
         }
     } // end all controls
 
-
-    
+	    
     // Disable Visual Styles if flag is set
     // DisableTheme(std::string type, std::string title)
     for (size_t i=0; i<controls.size(); i++) {
@@ -1885,14 +1922,9 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 	}
 
-	if (uMsg == WM_ERASEBKGND) {
-		if (lParam > 0) {
-			SpoutMessageBox("WM_ERASEBKGND 1"); // - wParam = 0x%X, lParam = 0x%X\n", wParam, lParam);
-		}
-	}
     // Retrieve the instance pointer (ofxWinDialog object)
     ofxWinDialog* pDlg = reinterpret_cast<ofxWinDialog*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
- 
+
     // Pass messages on to the class message handling function
     if (pDlg)
 		return pDlg->WindowProc(hwnd, uMsg, wParam, lParam);
@@ -1913,6 +1945,12 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
 		case WM_PAINT:
 		{
+
+			PAINTSTRUCT ps;
+			HDC hdc = BeginPaint(hwnd, &ps);
+			RECT rect;
+			GetClientRect(hwnd, &rect);
+
 			// Set the Group box caption colour here
 			// because it is not static text
 			for (size_t i = 0; i < controls.size(); i++) {
@@ -1945,30 +1983,11 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 						col = GetPixel(hdc, x, y);
 						SetBkColor(hdc, col);
 
-						// Warm grey R=212, G=208, B=200.
-						// COLOR_INACTIVECAPTION		: 191, 205, 219 ***
-						// COLOR_INACTIVECAPTIONTEXT	:   0,   0,   0
-						// COLOR_BACKGROUND				:   3, 131, 135
-						// COLOR_MENU					: 240, 240, 240
-						// COLOR_ACTIVEBORDER			: 180, 180, 180
-						// COLOR_INACTIVEBORDER			: 244, 247, 252
-						// CTLCOLOR_LISTBOX				: 153, 180, 209
-						// CTLCOLOR_EDIT				:   3, 131, 135
-						// CTLCOLOR_BTN					: 191, 205, 219 **
-						// COLOR_BTNFACE				: 240, 240, 240
-						// COLOR_BTNHIGHLIGHT			: 255, 255, 255
-						// CTLCOLOR_DLG					: 240, 240, 240
-						// CTLCOLOR_STATIC				: 100, 100, 100
-						// CTLCOLOR_MSGBOX				: 200, 200, 200 **
-						// COLOR_WINDOWFRAME			: 100, 100, 100
-						// COLOR_GRAYTEXT				: 109, 109, 109
-						// COLOR_HOTLIGHT				:   0, 102, 204 (hyperlink)
-
 						// Grey border slightly darker than normal for better visibility
+						// Other border colours
 						// COLOR_INACTIVECAPTION	: 191, 205, 219
 						// COLOR_ACTIVEBORDER		: 180, 180, 180
 						// CTLCOLOR_MSGBOX			: 200, 200, 200
-
 						HBRUSH hBrush = CreateSolidBrush(GetSysColor(CTLCOLOR_MSGBOX));
 						
 						// Move the top of the rect down to center the top border with the caption
@@ -2003,21 +2022,27 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 		break;
 
 		// Static text colour
+		// Checkbox, Radio, Group, Slider for background
 		case WM_CTLCOLORSTATIC:
-		{
+		case WM_CTLCOLORBTN: {
 			for (size_t i = 0; i < controls.size(); i++) {
-				if (controls[i].Type == "Static") {
+				if (controls[i].Type == "Static"
+					|| controls[i].Type == "Radio"
+					|| controls[i].Type == "Group"
+					|| controls[i].Type == "Slider"
+					|| controls[i].Type == "Checkbox") {
 					// lParam has the control window handle
-					if (controls[i].hwndControl == (HWND)lParam) {
+					if (controls[i].hwndControl == (HWND)lParam
+						|| controls[i].hwndSliderVal == (HWND)lParam) {
 						// RGB text colour is the Index number (default 0)
 						if (controls[i].Index > 0) {
 							COLORREF col = Hex2Rgb(controls[i].Index);
 							SetTextColor((HDC)wParam, col);
-							SetBkMode((HDC)wParam, TRANSPARENT);
-							// Return a background colour
-							// only if the text colour has been set
-							return (LRESULT)(HBRUSH)(COLOR_WINDOW);
 						}
+						SetBkMode((HDC)wParam, TRANSPARENT);
+						// Return a background colour so that the
+						// control background matches the main window
+						return (LRESULT)g_hBrush;
 					}
 				}
 			}
@@ -2440,3 +2465,6 @@ LRESULT CALLBACK GetKeyMsgProc(int nCode, WPARAM wParam, LPARAM lParam)
     }
     return CallNextHookEx(hMsgHook, nCode, wParam, lParam);
 }
+
+// There is no more ...
+

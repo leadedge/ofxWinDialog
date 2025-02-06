@@ -133,11 +133,17 @@ void ofApp::CreateAppDialog()
 	//        25 for tick marks to be visible.
 	//
 	dialog->AddSlider("Slider 1", 90, ypos, 210, 30, 0, 255, red, true, 16);
+
 	// Add a text label to the left of the slider (1 pixel down to centre on the control)
 	// Labels are independent of the slider title. The label is not
 	// a control and the name will not conflict with other controls
+
+	// Text colour can be specified
+	// as well as button and dialog background
+	// See ofApp dialog->BackGroundColor
 	dialog->TextColor(RGB(255, 0, 0));
 	dialog->AddText("Red",        35, ypos,  70, 25);
+	
 	// Leave a spacing > 30 to show the slider outline when selected
 	ypos += 30;
 	dialog->AddSlider("Slider 2", 90, ypos, 210, 30, 0, 255, green, true, 16);
@@ -247,7 +253,7 @@ void ofApp::CreateAppDialog()
 	// Enclose all controls in a group box
 	// A group box name will not conflict with other controls
 	// The group caption text colour can be changed
-	dialog->TextColor(0xB22222); // FireBrick
+	dialog->TextColor(0xB22222); // FireBrick - RGB(178, 34, 34)
 	dialog->AddGroup("Options", 25, 105, 345, ypos-60);
 	ypos += 60;
 
@@ -260,23 +266,19 @@ void ofApp::CreateAppDialog()
 	// using dialog->Save and dialog->Load
 	dialog->AddButton("Save button", "Save",   35, ypos, 100, 30);
 	dialog->AddButton("Load button", "Load",  140, ypos, 100, 30);
-
-	// Button background can be defined
-	//     dialog->ButtonColor(int hexcode);
-	//     dialog->ButtonColor(int red, int grn, int blu);
-	//     dialog->ButtonColor(COLORREF col);
-	// html color codes are useful (https://htmlcolorcodes.com/)
-	// FireBrick - #B22222 RGB(178, 34, 34)
-	dialog->ButtonColor(0xB22222);
-	// Default black text can also be changed
-	// to stand out from the background
-	dialog->TextColor(0xDCDCDC);
 	dialog->AddButton("Reset button", "Reset", 245, ypos, 100, 30);
 	ypos += 40;
 
 	// OK, Cancel, Help
 	dialog->AddButton("OK button", "OK",          35, ypos,  75, 42, BS_DEFPUSHBUTTON);
 	dialog->AddButton("Cancel button", "Cancel", 112, ypos,  75, 42);
+
+	// Button background can be defined as for TextColor
+	dialog->ButtonColor(0xF7E7CE); // Champagne - RGB(247, 231, 206)
+
+	// Default black text can also be changed to
+	// a lighter or darker colour to stand out from the background
+	dialog->TextColor(0xB22222); // FireBrick - RGB(178, 34, 34)
 	dialog->AddButton("Help button", "Help",     191, ypos,  75, 42);
 
 	// Picture button example
