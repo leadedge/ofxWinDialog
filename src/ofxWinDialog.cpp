@@ -95,6 +95,7 @@
 //				   Add global background brush - g_hBrush
 //				   Add WM_CTLBUTTON to handle control background brush
 //				   Remove WM_ERASEBKGND debug messagebox from MainWindowProc
+//				   Changet g_hBrush from COLOR_WINDOW (white) to CTLCOLOR_DLG (light grey)
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -124,8 +125,8 @@ ofxWinDialog::ofxWinDialog(ofApp* app, HINSTANCE hInstance,
 	m_hwnd = hWnd;
 	pApp = app; // The ofApp class pointer
 
-	// Default background brush is COLOR_WINDOW
-	g_hBrush = CreateSolidBrush(GetSysColor(COLOR_WINDOW));
+	// Default background brush is CTLCOLOR_DLG (light grey)
+	g_hBrush = CreateSolidBrush(GetSysColor(CTLCOLOR_DLG));
 
 	// ofApp callback function for return of control values
 	// Set by AppDialogFunction

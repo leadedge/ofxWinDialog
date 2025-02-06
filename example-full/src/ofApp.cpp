@@ -183,6 +183,7 @@ void ofApp::setup() {
 	dialog3 = new ofxWinDialog(this, hInstance, g_hWnd, "DialogClass3");
 	dialog3->AppDialogFunction(&ofApp::ofxWinDialogFunction3);
 	dialog3->SetIcon(hIcon); // Use the Spout icon loaded previously
+	dialog3->BackGroundColor(GetSysColor(COLOR_WINDOW)); // White
 	CreateAppDialog3();
 
 	// Details of dialog creation and callback 
