@@ -93,9 +93,10 @@
 //		06.02.25 - Move dialog window registration to Open - RegisterDialog
 //				   Dialog background colour - BackGroundColor
 //				   Add global background brush - g_hBrush
-//				   Add WM_CTLBUTTON to handle control background brush
+//				   Add WM_CTLCOLORBTN to handle control background brush
 //				   Remove WM_ERASEBKGND debug messagebox from MainWindowProc
-//				   Changet g_hBrush from COLOR_WINDOW (white) to CTLCOLOR_DLG (light grey)
+//				   Change g_hBrush from COLOR_WINDOW (white) to CTLCOLOR_DLG (light grey)
+//		07.02.25 - AddText function comment for Button background
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -462,6 +463,9 @@ void ofxWinDialog::ButtonText(std::string title, std::string text) {
 
 // Change button background color
 // Set before AddButton
+//     Reference :
+//     https://www.html-color-codes.info/color-names/
+//     https://www.computerhope.com/htmcolor.htm
 void ofxWinDialog::ButtonColor(int hexcode) {
 	ButtonColor(Hex2Rgb(hexcode));
 }
@@ -594,8 +598,10 @@ void ofxWinDialog::AddText(std::string title, std::string text, int x, int y, in
 // Static text color
 // Set before AddText
 // Reference :
-// https://www.html-color-codes.info/color-names/
-// https://www.computerhope.com/htmcolor.htm
+//     https://www.html-color-codes.info/color-names/
+//     https://www.computerhope.com/htmcolor.htm
+// If setting text for a button, the background
+// also has to be specified with ButtonColor
 void ofxWinDialog::TextColor(int hexcode) {
 	TextColor(Hex2Rgb(hexcode));
 }
@@ -2091,22 +2097,18 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 						DeleteObject(hBrush);
 					}
 					else {
-
 						// Picture button
 						// Bitmap handle set by image load
 						if (controls[i].hwndType) {
-
 							// Transparent white background
 							SetBkMode(hdc, TRANSPARENT);
 							FillRect(hdc, &rect, (HBRUSH)GetStockObject(WHITE_BRUSH));
-
 							// Draw the image
 							HDC hdcMem = CreateCompatibleDC(hdc);
 							HBITMAP hBitmap = (HBITMAP)controls[i].hwndType;
 							HBITMAP hOldBitmap = (HBITMAP)SelectObject(hdcMem, hBitmap);
 							BITMAP bitmap;
 							GetObject(hBitmap, sizeof(bitmap), &bitmap);
-
 							// Draw the bitmap to fit the button
 							SetStretchBltMode(hdc, COLORONCOLOR); // Fastest method
 							StretchBlt(
@@ -2120,7 +2122,6 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 								bitmap.bmHeight, // Source height
 								SRCCOPY // Copy operation
 							);
-
 							// Cleanup
 							SelectObject(hdcMem, hOldBitmap);
 							DeleteDC(hdcMem);
