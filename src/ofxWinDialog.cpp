@@ -97,6 +97,7 @@
 //				   Remove WM_ERASEBKGND debug messagebox from MainWindowProc
 //				   Change g_hBrush from COLOR_WINDOW (white) to CTLCOLOR_DLG (light grey)
 //		07.02.25 - AddText function comment for Button background
+//		08.02.25 - Blue frame when cursor is over a button
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -1952,7 +1953,6 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
 		case WM_PAINT:
 		{
-
 			PAINTSTRUCT ps;
 			HDC hdc = BeginPaint(hwnd, &ps);
 			RECT rect;
@@ -2149,7 +2149,6 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 						DeleteObject(hBrush);
 					} // endif pressed
 					else {
-
 						// Button not pressed
 						if (!controls[i].Text.empty()) {
 							if (controls[i].Index > 0) {
@@ -2177,6 +2176,10 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 				if (controls[i].Type == "Button"
 					&& controls[i].Index != 1 // not a hyperlink
 					&& (controls[i].hwndType || controls[i].Val > 1) ) { // Owner draw button
+					// Prepare for frame draw
+					RECT rect;
+					GetClientRect(controls[i].hwndControl, &rect);
+					HDC hdc = GetDC(controls[i].hwndControl);
 					// Cursor position
 					POINT pt;
 					GetCursorPos(&pt);
@@ -2184,7 +2187,22 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 					if (WindowFromPoint(pt) == controls[i].hwndControl) {
 						cursorHand = LoadCursor(NULL, IDC_HAND);
 						SetCursor(cursorHand);
+						// Blue border when mouse is over the button
+						HBRUSH hBrush = CreateSolidBrush(RGB(0, 120, 215));
+						FrameRect(hdc, &rect, hBrush);
+						DeleteObject(hBrush);
 						return TRUE;
+					}
+					else {
+						// Current border colour
+						COLORREF bc = GetPixel(hdc, 0, 0);
+						// If border colour is changed to blue, restore 
+						// to grey as when not pressed in WM_DRAWITEM
+						if (bc == RGB(0, 120, 215)) {
+							HBRUSH hBrush = CreateSolidBrush(RGB(169, 169, 169));
+							FrameRect(hdc, &rect, hBrush);
+							DeleteObject(hBrush);
+						}
 					}
 				}
 			}
