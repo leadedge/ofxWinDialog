@@ -276,8 +276,8 @@ void ofApp::CreateAppDialog()
 	// Button background can be defined as for TextColor
 	dialog->ButtonColor(0xF7E7CE); // Champagne - RGB(247, 231, 206)
 
-	// Default black text can also be changed to
-	// a lighter or darker colour to stand out from the background
+	// Default black text can also be changed to a lighter
+	// or darker colour to stand out from the background
 	dialog->TextColor(0xB22222); // FireBrick - RGB(178, 34, 34)
 	dialog->AddButton("Help button", "Help",     191, ypos,  75, 42);
 

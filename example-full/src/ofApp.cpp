@@ -86,17 +86,18 @@ void ofApp::setup() {
 	// ofxWinDialogFunction shows how messages are returned and handled by ofApp.
 	dialog->AppDialogFunction(&ofApp::ofxWinDialogFunction);
 
-	// Icon for the dialog window (option)
+	// Icon for the dialog window (Settings)
 	//
-	// Pre-defined Windows icons can be used
-	//    IDI_INFORMATION, IDI_WARNING, IDI_ERROR, IDI_SHIELD
+	// Pre-defined Windows icons can be used :
+	// (IDI_INFORMATION, IDI_WARNING, IDI_ERROR, IDI_SHIELD)
 	//    HICON hIcon = LoadIcon(NULL, IDI_INFORMATION);
-	// Or loaded from file
-	std::string icopath = ofToDataPath("Spout.ico", true);
-	HICON hIcon = reinterpret_cast<HICON>(LoadImageA(nullptr, icopath.c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE));
+	// Or loaded from Windows dlls
+	HICON hIcon = LoadWindowsIcon(316);
 	dialog->SetIcon(hIcon);
 
-	// Set the main window icon as well
+	// Load the main window icon from file
+	std::string icopath = ofToDataPath("Spout.ico", true);
+	hIcon = reinterpret_cast<HICON>(LoadImageA(nullptr, icopath.c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE));
 	SendMessage(ofGetWin32Window(), WM_SETICON, ICON_BIG, (LPARAM)hIcon);
 	SendMessage(ofGetWin32Window(), WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
 
@@ -361,4 +362,27 @@ bool ofApp::LoadWindowsFont(ofTrueTypeFont& font, std::string fontname, int size
 		}
 	}
 	return false;
+}
+
+//
+// Load an icon from Shell32.dll or imageres.dll
+//
+// https://renenyffenegger.ch/development/Windows/PowerShell/examples/WinAPI/ExtractIconEx/shell32.html
+// https://renenyffenegger.ch/development/Windows/PowerShell/examples/WinAPI/ExtractIconEx/imageres.html
+//
+HICON ofApp::LoadWindowsIcon(int iconIndex, bool bImageres) {
+	char path[MAX_PATH]{};
+	UINT length = GetSystemDirectoryA(path, MAX_PATH);
+	if (length > 0 && length < MAX_PATH) {
+		std::string dllPath;
+		if (bImageres)
+			dllPath = std::string(path) + "\\imageres.dll";
+		else
+			dllPath = std::string(path) + "\\Shell32.dll";
+		// Does the file exist?
+		if (_access(dllPath.c_str(), 0) != -1) {
+			return ExtractIconA(nullptr, dllPath.c_str(), iconIndex);
+		}
+	}
+	return nullptr;
 }

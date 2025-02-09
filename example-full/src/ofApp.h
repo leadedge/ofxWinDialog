@@ -127,5 +127,7 @@ class ofApp : public ofBaseApp {
 		// Load a truetype font from Windows/Fonts
 		bool LoadWindowsFont(ofTrueTypeFont& font, std::string fontname, int size);
 
+		// Load an icon from Windows Shell32.dll or imageres.dll
+		HICON LoadWindowsIcon(int iconIndex, bool bImageres = false);
 
 };
