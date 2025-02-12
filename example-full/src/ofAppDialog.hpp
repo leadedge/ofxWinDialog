@@ -284,8 +284,12 @@ void ofApp::CreateAppDialog()
 	// Picture button example
 	std::string path = GetExePath() + "\\data\\";
 	dialog->ButtonPicture(path + "Owlbethere.jpg");
-	dialog->AddButton("Image2 button", "",       270, ypos, 74, 42);
-
+	// TextColor before AddButton
+	dialog->TextColor(0xF7E7CE); // Champagne
+	dialog->AddButton("Image button", "",   270, ypos, 74, 42);
+	// Text is optional for a picture button
+	// Text alignment can be BS_TOP or BS_BOTTOM
+	dialog->ButtonText("Image button", "owls", BS_TOP);
 
 	//
 	// Option
@@ -567,21 +571,12 @@ void ofApp::ofxWinDialogFunction(std::string title, std::string text, int value)
 			hwndDialog2 = dialog2->Open("Help");
 	}
 
-	// Picture buttons
-	// See definitions for buttons 
+	// Picture button
 	std::string path = GetExePath() + "\\data\\";
-	if (title == "Image1 button") {
-		path += "SantaCruzSunrise.jpg";
-		if (_access(path.c_str(), 0) != -1)
-			ShellExecuteA(NULL, "open", path.c_str(), NULL, NULL, SW_SHOWNORMAL);
-	}
-	if (title == "Image2 button") {
+	if (title == "Image button") {
+		// Action can be anything
+		// Bring up the full size image
 		path += "Owlbethere.jpg";
-		if (_access(path.c_str(), 0) != -1)
-			ShellExecuteA(NULL, "open", path.c_str(), NULL, NULL, SW_SHOWNORMAL);
-	}
-	if (title == "Image3 button") {
-		path += "Sweet dreams are made of leaves.jpg";
 		if (_access(path.c_str(), 0) != -1)
 			ShellExecuteA(NULL, "open", path.c_str(), NULL, NULL, SW_SHOWNORMAL);
 	}

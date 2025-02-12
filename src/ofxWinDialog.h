@@ -88,7 +88,11 @@ public:
     void AddButton(std::string title, std::string text, int x, int y, int width, int height, DWORD dwStyle = 0);
 
 	// Change button text
-	void ButtonText(std::string title, std::string text);
+	// Style can be BS_TOP or BS_BOTTOM (default center)
+	void ButtonText(std::string title, std::string text, DWORD dwStyle = 0);
+
+	// Get button text
+	std::string GetButtonText(std::string title);
 
 	// Change button background color
 	// Set before AddButton
@@ -365,7 +369,7 @@ public:
     HWND hwndOKButton = NULL;  // OK Button
     HWND hwndCancelButton = NULL;  // Cancel Button
 	HBRUSH g_hBrush = NULL; // Dialog background brush
-	
+		
 	COLORREF g_TextColor = RGB(0, 0, 0); // Static text colour
 	COLORREF g_ButtonColor = RGB(0, 0, 0); // Button background (default COLOR_BTNFACE);
 	HBITMAP g_hBitmap = nullptr; // Bitmap handle for owner draw button

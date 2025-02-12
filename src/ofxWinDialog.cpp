@@ -98,6 +98,14 @@
 //				   Change g_hBrush from COLOR_WINDOW (white) to CTLCOLOR_DLG (light grey)
 //		07.02.25 - AddText function comment for Button background
 //		08.02.25 - Blue frame when cursor is over a button
+//		11.02.25 - Add GetButtonText
+//				   Correct hyperlink to inform ofApp if text is empty
+//				   ButtonText - RedrawWindow to update owner draw button
+//		12.02.25 - Check data folder exists for inifile path in Save and Load
+//				   AddButton - if not a colour button retain the default
+//				   button background to avoid text over-write.
+//				   ButtonText optional style BS_TOP or BS_BOTTOM
+//
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -148,7 +156,7 @@ ofxWinDialog::ofxWinDialog(ofApp* app, HINSTANCE hInstance,
 			strcpy_s(m_ClassName, MAX_LOADSTRING, "ofxWinDialogClass");
 	#endif
 
-    // Create the message hook to enable the tab key
+	// Create the message hook to enable the tab key
 	if (!hMsgHook) {
 		hMsgHook = SetWindowsHookEx(WH_GETMESSAGE, GetKeyMsgProc, NULL, GetCurrentThreadId());
 	}
@@ -175,16 +183,16 @@ bool ofxWinDialog::RegisterDialog()
 	wndClass.lpfnWndProc = MainWndProc;
 	// Optional class name for multiple dialogs
 	wndClass.lpszClassName = m_ClassName;
-    wndClass.hInstance = m_hInstance;
-    wndClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wndClass.hInstance = m_hInstance;
+	wndClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
 	// Background colour brush can be set by "BackGroundColor" 
 	// Default brush is set in constructor(COLOR_WINDOW)
 	wndClass.hbrBackground = g_hBrush;
 
     // Register the window class
     if (!RegisterClass(&wndClass)) {
-        MessageBoxA(NULL, "Dialog window class registration failed", "Error", MB_OK | MB_ICONERROR);
-        return false;
+		return false;
     }
 
 	// For the destructor
@@ -442,6 +450,11 @@ void ofxWinDialog::AddButton(std::string title, std::string text, int x, int y, 
 		control.Index = Rgb2Hex(GetRValue(g_TextColor),
 			GetGValue(g_TextColor), GetBValue(g_TextColor));
 		control.Style |= BS_OWNERDRAW;
+		// If not a colour or image button retain the default
+		// button background to avoid text over-write in WM_DRAWITEM
+		if (control.Val == 0 && !control.hwndType) {
+			control.Val = Rgb2Hex(RGB(224, 224, 224));
+		}
 		g_TextColor = 0;
 	}
 
@@ -449,7 +462,8 @@ void ofxWinDialog::AddButton(std::string title, std::string text, int x, int y, 
 }
 
 // Change button text
-void ofxWinDialog::ButtonText(std::string title, std::string text) {
+// Style can be BS_TOP or BS_BOTTOM (default center)
+void ofxWinDialog::ButtonText(std::string title, std::string text, DWORD dwStyle) {
 	for (size_t i = 0; i < controls.size(); i++) {
 		// Update the button text
 		if (controls[i].Type == "Button") {
@@ -457,9 +471,24 @@ void ofxWinDialog::ButtonText(std::string title, std::string text) {
 				SetWindowTextA(controls[i].hwndControl, text.c_str());
 				// Set control text for owner draw
 				controls[i].Text = text;
+				controls[i].Min = (float)dwStyle; // Min is normally unused for a button
+				// Update the control
+				RedrawWindow(controls[i].hwndControl, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASENOW | RDW_INTERNALPAINT);
 			}
 		}
 	}
+}
+
+// Get button text
+std::string ofxWinDialog::GetButtonText(std::string title) {
+	for (size_t i = 0; i < controls.size(); i++) {
+		if (controls[i].Type == "Button") {
+			if (controls[i].Title == title) {
+				return controls[i].Text;
+			}
+		}
+	}
+	return "";
 }
 
 // Change button background color
@@ -616,7 +645,7 @@ void ofxWinDialog::TextColor(COLORREF rgb) {
 
 // Hyperlink
 // Title is the text displayed, control text is the action taken
-// If the text is empty, ofApp is notified when the hyperlink is clicked
+// If the text is empty, ofApp is notified when the title is clicked
 void ofxWinDialog::AddHyperlink(std::string title, std::string text, int x, int y, int width, int height, DWORD dwStyle)
 {
     ctl control{};
@@ -1079,12 +1108,22 @@ void ofxWinDialog::Save(std::string filename, bool bOverWrite)
         inipath = filename;
     }
     else {
-        // filename only - add full path - (bin\data directory)
-        char path[MAX_PATH]{};
-        GetModuleFileNameA(NULL, path, MAX_PATH);
-        PathRemoveFileSpecA(path);
-        inipath = path;
-        inipath = inipath + "\\data\\" + filename;
+        // filename only - add full path - (bin\data or executable directory)
+		std::string path = GetExePath();
+		// First try the bin\data folder
+		inipath = path;
+		inipath += "\\data\\";
+		// Does the folder exist ?
+		if (_access(inipath.c_str(), 0) != -1) {
+			// Openframeworks application
+			inipath += filename;
+		}
+		else {
+			// Executable folder
+			inipath = path;
+			inipath += "\\";
+			inipath += filename;
+		}
     }
 
     // Check if file exists if bOverWrite is false
@@ -1123,8 +1162,8 @@ void ofxWinDialog::Save(std::string filename, bool bOverWrite)
                 WritePrivateProfileStringA((LPCSTR)ControlSection.c_str(), (LPCSTR)controls[i].Title.c_str(), (LPCSTR)tmp, (LPCSTR)inipath.c_str());
             }
             else {
-                sprintf_s(tmp, MAX_PATH, "%d", controls[i].Val);
-                WritePrivateProfileStringA((LPCSTR)ControlSection.c_str(), (LPCSTR)controls[i].Title.c_str(), (LPCSTR)tmp, (LPCSTR)inipath.c_str());
+				sprintf_s(tmp, MAX_PATH, "%d", controls[i].Val);
+				WritePrivateProfileStringA((LPCSTR)ControlSection.c_str(), (LPCSTR)controls[i].Title.c_str(), (LPCSTR)tmp, (LPCSTR)inipath.c_str());
             }
         }
     }
@@ -1162,12 +1201,22 @@ bool ofxWinDialog::Load(std::string filename, std::string section)
         inipath = filename;
     }
     else {
-        // filename only - add full path - (bin\data directory)
-        char path[MAX_PATH]{};
-        GetModuleFileNameA(NULL, path, MAX_PATH);
-        PathRemoveFileSpecA(path);
-        inipath = path;
-        inipath = inipath + "\\data\\" + filename;
+		// filename only - add full path - (bin\data or executable directory)
+		std::string path = GetExePath();
+		// First try the bin\data folder
+		inipath = path;
+		inipath += "\\data\\";
+		// Does the folder exist ?
+		if (_access(inipath.c_str(), 0) != -1) {
+			// Openframeworks application
+			inipath += filename;
+		}
+		else {
+			// Executable folder
+			inipath = path;
+			inipath += "\\";
+			inipath += filename;
+		}
     }
 
     // Check that the file exists in case an extension was added
@@ -2068,6 +2117,7 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 					&& !controls[i].hwndType // Not a button
 					&& LOWORD(wParam) == controls[i].ID) { // Can also be lpdis->CtlID
 					// Title is the text displayed, control text is the action taken
+					// if text is empty, ofApp is informed 
 					// COLOR_HOTLIGHT : 0, 102, 204
 					// Other blues :
 					// RGB(51, 102, 204)
@@ -2165,7 +2215,18 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 						DeleteObject(hBrush);
 					} // endif not pressed
 					if (!controls[i].Text.empty()) {
-						DrawTextA(hdc, controls[i].Text.c_str(), -1, &lpdis->rcItem, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+						// controls[i].Min contains optional style
+						// BS_TOP (0x400) or BS_BOTTOM (0x800)
+						DWORD dwStyle = DT_CENTER | DT_SINGLELINE; // Common;
+						if (controls[i].Min > 0.0f) {
+							if((DWORD)controls[i].Min == 0x400)
+								dwStyle |= DT_TOP;
+							else
+								dwStyle |= DT_BOTTOM;
+						}
+						else
+							dwStyle |= DT_VCENTER; // Default centre
+						DrawTextA(hdc, controls[i].Text.c_str(), -1, &lpdis->rcItem, dwStyle);
 					}
 				} // endif button
             }
@@ -2251,7 +2312,11 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                                 ShellExecuteA(hwnd, "open", controls[i].Text.c_str(), NULL, NULL, SW_SHOWNORMAL);
                                 // Close the dialog
                                 SendMessage(hwnd, WM_CLOSE, 0, 0);
-                            }
+							 }
+							 else {
+								 // Inform ofApp for action
+								 DialogFunction(controls[i].Title, controls[i].Title, 0);
+							 }
                          }
                      }
                  }
@@ -2435,7 +2500,7 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
         case WM_CLOSE:
         case WM_DESTROY:
             DestroyWindow(hwnd);
-            DialogFunction("WM_DESTROY", "", PtrToUint(m_hDialog));
+			DialogFunction("WM_DESTROY", "", PtrToUint(m_hDialog));
             m_hDialog = nullptr;
             break;
     }
