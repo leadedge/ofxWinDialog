@@ -105,6 +105,8 @@
 //				   AddButton - if not a colour button retain the default
 //				   button background to avoid text over-write.
 //				   ButtonText optional style BS_TOP or BS_BOTTOM
+//		16.02.25 - Correct combo item string return to ofApp
+//				   in CBN_SELCHANGE and GetControls
 //
 //
 #include "ofxWinDialog.h"
@@ -725,7 +727,7 @@ std::string ofxWinDialog::GetEdit(std::string title)
 }
 
 // Get current combo box item index and text
-int ofxWinDialog::GetComboItem(std::string title, std::string * text) {
+int ofxWinDialog::GetComboItem(std::string title, std::string* text) {
 	int index = 0;
 	for (size_t i = 0; i < controls.size(); i++) {
 		if (controls[i].Type == "Combo") {
@@ -960,7 +962,7 @@ void ofxWinDialog::GetControls()
             && controls[i].Type != "OK"
             && controls[i].Type != "CANCEL") {
 			if (controls[i].Type == "Combo" || controls[i].Type == "List") {
-				DialogFunction(controls[i].Title, controls[i].Text, controls[i].Index);
+				DialogFunction(controls[i].Title, controls[i].Items[controls[i].Index], controls[i].Index);
             }
             else if (controls[i].Type == "Slider") {
                 DialogFunction(controls[i].Title, "", (int)(controls[i].SliderVal*100.0f));
@@ -2331,7 +2333,7 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                              int index = (int)SendMessage(controls[i].hwndControl, (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
                              if (index != CB_ERR) {
                                  // Inform ofApp if no error
-								 DialogFunction(controls[i].Title, controls[i].Text, index);
+								 DialogFunction(controls[i].Title, controls[i].Items[index], index);
                              }
                              // Reset the control index
                              controls[i].Index = index;
