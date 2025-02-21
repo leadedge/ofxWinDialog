@@ -224,6 +224,7 @@ public:
     void SetSlider(std::string title, float value);
     void SetEdit(std::string title, std::string text);
 	void SetText(std::string title, std::string text);
+	// Set the current combo item
     void SetComboItem(std::string title, int item);
 	void SetList(std::string title, std::vector<std::string> items, int index);
 	void SetListItem(std::string title, int item);
@@ -289,9 +290,6 @@ public:
     // Close dialog window and retain controls
     void Close();
 
-    // Utility
-    std::string float2string(float number, int places);
-
     // Disable Visual Style themes for dialog controls
     // if using common controls version 6.0.0.0
     // All controls if hwndControl is not specified
@@ -304,6 +302,7 @@ public:
 	//
 	// Utility
 	//
+    std::string float2string(float number, int places = 0);
 	int Rgb2Hex(COLORREF col);
 	int Rgb2Hex(int r, int g, int b);
 	COLORREF Hex2Rgb(int hex, int* red=nullptr, int* grn=nullptr, int* blu=nullptr);

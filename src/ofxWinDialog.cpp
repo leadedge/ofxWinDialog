@@ -335,7 +335,7 @@ void ofxWinDialog::AddEdit(std::string title, int x, int y, int width, int heigh
     control.Type = "Edit";
     control.Title = title;
     control.Text = text;
-    control.Style = dwStyle;
+	control.Style = dwStyle;
     control.X=x;
     control.Y=y;
     control.Width=width;
@@ -347,19 +347,20 @@ void ofxWinDialog::AddEdit(std::string title, int x, int y, int width, int heigh
 // Combo box list control
 // Style CBS_DROPDOWN allows user entry
 // Default is CBS_DROPDOWNLIST which prevents user entry
-void ofxWinDialog::AddCombo(std::string title, int x, int y, int width, int height, std::vector<std::string> items, int index, DWORD dwStyle)
-{
-    ctl control{};
-    control.Type = "Combo";
-    control.Title = title;
-    control.Items = items;
-    control.Index = index;
+void ofxWinDialog::AddCombo(std::string title, int x, int y, int width, int height, std::vector<std::string> items, int index, DWORD dwStyle) {
+	ctl control {};
+	control.Type = "Combo";
+	control.Title = title;
+	control.Items = items;
+	control.Index = index;
 	control.Style = dwStyle;
-    control.X=x;
-    control.Y=y;
-    control.Width=width;
-    control.Height=height;
-    controls.push_back(control);
+	control.X = x;
+	control.Y = y;
+	control.Width = width;
+	control.Height = height;
+
+	controls.push_back(control);
+
 }
 
 // For testing
@@ -741,12 +742,13 @@ int ofxWinDialog::GetComboItem(std::string title, std::string* text) {
 }
 
 // Get combo box edit text
-std::string ofxWinDialog::GetComboEdit(std::string title) {
+std::string ofxWinDialog::GetComboEdit(std::string title)
+{
 	std::string str;
 	for (size_t i = 0; i < controls.size(); i++) {
 		if (controls[i].Type == "Combo") {
 			if (controls[i].Title == title) {
-				char tmp[256] {};
+				char tmp[256]{};
 				int len = GetWindowTextA(controls[i].hwndControl, tmp, 256);
 				if (len > 0) str = tmp;
 			}
@@ -887,7 +889,8 @@ void ofxWinDialog::SetText(std::string title, std::string text) {
 }
 
 // Set the current combo item
-void ofxWinDialog::SetComboItem(std::string title, int item) {
+void ofxWinDialog::SetComboItem(std::string title, int item)
+{
 	for (size_t i = 0; i < controls.size(); i++) {
 		if (controls[i].Type == "Combo") {
 			if (controls[i].Title == title && item < (int)controls[i].Items.size()) {
@@ -900,7 +903,8 @@ void ofxWinDialog::SetComboItem(std::string title, int item) {
 }
 
 // Reset the list items
-void ofxWinDialog::SetList(std::string title, std::vector<std::string> items, int index) {
+void ofxWinDialog::SetList(std::string title, std::vector<std::string> items, int index)
+{
 	// Addlist
 	for (size_t i = 0; i < controls.size(); i++) {
 		if (controls[i].Type == "List") {
@@ -1029,12 +1033,10 @@ void ofxWinDialog::Refresh()
             }
         }
         if (controls[i].Type == "Slider") {
-
             if ((controls[i].Max - controls[i].Min) > 1000.0)
                 SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, (int)controls[i].SliderVal);
             else
                 SendMessage(controls[i].hwndControl, TBM_SETPOS, TRUE, (int)(controls[i].SliderVal*100.0f));
-            
             // Slider value text display
             if (controls[i].hwndSliderVal) {
                 char tmp[8]{};
@@ -1059,6 +1061,7 @@ void ofxWinDialog::Refresh()
             // Select all text in the edit field
             SendMessage(controls[i].hwndControl, CB_SETEDITSEL, 0, MAKELONG(0, -1));
         }
+
 		if (controls[i].Type == "List") {
 			if (!controls[i].Text.empty()) {
 				// Delete the existing item text
@@ -1662,8 +1665,10 @@ HWND ofxWinDialog::Open(std::string title)
                 }
                 // Display an initial item in the selection field
                 SendMessage(hwndc, CB_SETCURSEL, (WPARAM)controls[i].Index, (LPARAM)0);
+
                 // Select all text in the edit field
                 SendMessage(hwndc, CB_SETEDITSEL, 0, MAKELONG(0, -1));
+
                 controls[i].hwndControl = hwndc;
                 controls[i].ID = ID;
                 ID++;
@@ -1883,19 +1888,6 @@ void ofxWinDialog::DialogFunction(std::string title, std::string text, int value
         (pApp->*pAppDialogFunction)(title, text, value);
 }
 
-//
-// Utility
-//
-std::string ofxWinDialog::float2string(float number, int places)
-{
-    std::string str = std::to_string(number);
-    if(places > 0)
-        str = str.substr(0, str.find(".")+places+1);
-    else
-        str = str.substr(0, str.find("."));
-    return str;
-}
-
 // ---------------------------------------------
 // Disable Visual Style themes for dialog controls
 // if using common controls version 6.0.0.0
@@ -1945,6 +1937,16 @@ void ofxWinDialog::DisableTheme(std::string type, std::string title)
 //
 // Utility
 //
+std::string ofxWinDialog::float2string(float number, int places)
+{
+    std::string str = std::to_string(number);
+    if(places > 0)
+        str = str.substr(0, str.find(".")+places+1);
+    else
+        str = str.substr(0, str.find("."));
+    return str;
+}
+
 int ofxWinDialog::Rgb2Hex(COLORREF col) {
 	return (GetRValue(col) << 16) | (GetGValue(col) << 8) | GetBValue(col);
 }
@@ -2331,12 +2333,12 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                              // Get currently selected combo index
                              // Allow for error if the user edits the list item
                              int index = (int)SendMessage(controls[i].hwndControl, (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
-                             if (index != CB_ERR) {
-                                 // Inform ofApp if no error
+							 if (index != CB_ERR) {
+								 // Inform ofApp if no error
 								 DialogFunction(controls[i].Title, controls[i].Items[index], index);
-                             }
-                             // Reset the control index
-                             controls[i].Index = index;
+								 // Reset the control index
+								 controls[i].Index = index;
+							 }
                          }
 
 						 if (controls[i].Type == "List") {
