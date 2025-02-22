@@ -282,13 +282,13 @@ void ofApp::CreateAppDialog()
 	dialog->AddButton("Help button", "Help",     191, ypos,  75, 42);
 
 	// Picture button example
-	std::string path = GetExePath() + "\\data\\";
-	dialog->ButtonPicture(path + "Owlbethere.jpg");
+	dialog->ButtonPicture(GetExePath()+"\\data\\Owlbethere.jpg");
 	// TextColor before AddButton
 	dialog->TextColor(0xF7E7CE); // Champagne
-	dialog->AddButton("Image button", "",   270, ypos, 74, 42);
 	// Text is optional for a picture button
-	// Text alignment can be BS_TOP or BS_BOTTOM
+	dialog->AddButton("Image button", "",   270, ypos, 74, 42);
+	// Text can be added after the button
+	// Alignment can be BS_TOP or BS_BOTTOM
 	dialog->ButtonText("Image button", "owls", BS_TOP);
 
 	//
@@ -572,11 +572,10 @@ void ofApp::ofxWinDialogFunction(std::string title, std::string text, int value)
 	}
 
 	// Picture button
-	std::string path = GetExePath() + "\\data\\";
 	if (title == "Image button") {
 		// Action can be anything
 		// Bring up the full size image
-		path += "Owlbethere.jpg";
+		std::string path = GetExePath() + "\\data\\Owlbethere.jpg";
 		if (_access(path.c_str(), 0) != -1)
 			ShellExecuteA(NULL, "open", path.c_str(), NULL, NULL, SW_SHOWNORMAL);
 	}
@@ -597,39 +596,52 @@ void ofApp::CreateAppDialog2()
 	int ypos = 20;
 	std::string text = "- - - - -  ofxWinDialog help - - - - -";
 	dialog2->AddText(text, 15, ypos, 270, 30, SS_CENTER | WS_BORDER);
-	ypos += 50;
+	ypos += 38;
 
-	// Make the style BS_DEFPUSHBUTTON for all the buttons to add a blue outline
-	dialog2->AddButton("Checkbox help", "Checkbox", 75, ypos, 160, 25, BS_DEFPUSHBUTTON);
+	//
+	// "Dialog" button
+	//
+	// Dialog picture button
+	dialog2->ButtonPicture(GetExePath()+"\\data\\lighthouse.jpg"); // 640x480
+	// TextColor before AddButton
+	dialog2->TextColor((RGB(255, 255, 255))); // White text
+	// Text is optional for a picture button
+	dialog2->AddButton("Dialog help", "", 115, ypos, 80, 60); // 640x480 scaled
+	// Text can be added after the button
+	// Alignment can be BS_TOP or BS_BOTTOM
+	dialog2->ButtonText("Dialog help", "Dialog", BS_BOTTOM);
+	ypos += 65;
+
+	dialog2->AddButton("Static help", "Static text", 75, ypos, 160, 25);
 	ypos += 30;
-	dialog2->AddButton("Radio help", "Radio button", 75, ypos, 160, 25, BS_DEFPUSHBUTTON);
+	dialog2->AddButton("Group help", "Group box",    75, ypos, 160, 25);
 	ypos += 30;
-	dialog2->AddButton("Button help", "Push button", 75, ypos, 160, 25, BS_DEFPUSHBUTTON);
+	dialog2->AddButton("Checkbox help", "Checkbox", 75, ypos, 160, 25);
 	ypos += 30;
-	dialog2->AddButton("Spin help", "Spin control", 75, ypos, 160, 25, BS_DEFPUSHBUTTON);
+	dialog2->AddButton("Radio help", "Radio button", 75, ypos, 160, 25);
 	ypos += 30;
-	dialog2->AddButton("Slider help", "Slider", 75, ypos, 160, 25, BS_DEFPUSHBUTTON);
+	dialog2->AddButton("Button help", "Push button", 75, ypos, 160, 25);
 	ypos += 30;
-	dialog2->AddButton("Combo help", "Combo box", 75, ypos, 160, 25, BS_DEFPUSHBUTTON);
+	dialog2->AddButton("Edit help", "Edit text", 75, ypos, 160, 25);
 	ypos += 30;
-	dialog2->AddButton("List help", "List box", 75, ypos, 160, 25, BS_DEFPUSHBUTTON);
+	dialog2->AddButton("Hyperlink help", "Hyperlink", 75, ypos, 160, 25);
 	ypos += 30;
-	dialog2->AddButton("Edit help", "Edit text", 75, ypos, 160, 25, BS_DEFPUSHBUTTON);
+	dialog2->AddButton("Spin help", "Spin control", 75, ypos, 160, 25);
 	ypos += 30;
-	dialog2->AddButton("Static help", "Static text", 75, ypos, 160, 25, BS_DEFPUSHBUTTON);
+	dialog2->AddButton("Slider help", "Slider", 75, ypos, 160, 25);
 	ypos += 30;
-	dialog2->AddButton("Hyperlink help", "Hyperlink", 75, ypos, 160, 25, BS_DEFPUSHBUTTON);
+	dialog2->AddButton("Combo help", "Combo box", 75, ypos, 160, 25);
 	ypos += 30;
-	dialog2->AddButton("Group help", "Group box", 75, ypos, 160, 25, BS_DEFPUSHBUTTON);
+	dialog2->AddButton("List help", "List box", 75, ypos, 160, 25);
 	ypos += 30;
-	dialog2->AddButton("Save help", "Save and Load", 75, ypos, 160, 25, BS_DEFPUSHBUTTON);
+	dialog2->AddButton("Save help", "Save and Load", 75, ypos, 160, 25);
 	ypos += 30;
-	dialog2->AddButton("Messagebox help", "MessageBox", 75, ypos, 160, 25, BS_DEFPUSHBUTTON);
-	ypos += 45;
+	dialog2->AddButton("Messagebox help", "MessageBox", 75, ypos, 160, 25);
+	ypos += 36;
 	dialog2->AddButton("OK button", "OK", 100, ypos, 100, 30, BS_DEFPUSHBUTTON);
 
 	// Centre on the main window
-	dialog2->SetPosition(0, 0, 320, 575);
+	dialog2->SetPosition(0, 0, 320, 610);
 
 }
 
@@ -646,6 +658,88 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 	// Help buttons use SpoutMessageBox in SpoutUtils
 	//
 	std::string str;
+
+	if (title == "Dialog help") {
+		str = "A custom font can be set for the dialog (<a href=\"https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-logfonta\">Microsoft documentation</a>)\n";
+		str += "    void SetFont(std::string name, LONG height, LONG weight = FW_NORMAL);\n";
+		str += "      name    - e.g. \"Tahoma\", \"Ms Shell Dlg\" etc.\n";
+		str += "      height  - height in dialog units\n";
+		str += "      weight  - FW_NORMAL, FW_BOLD etc. (default FW_NORMAL)\n";
+		str += "      Font height is in dialog units (72 per inch)\n";
+		str += "      and adjusts to the screen dots per inch.\n";
+		str += "      For example, 8, 9, 10, 12 are commonly used.\n";
+		str += "Return the font height set\n";
+		str += "    LONG GetFontHeight();\n";
+		str += "Return the logical font handle after window creation\n";
+		str += "    HFONT GetFont();\n\n";
+		str += "The dialog background colour can be changed\n";
+		str += "as a hex, red,green,blue or COLORREF value.\n";
+		str += "Call before creating the dialog and controls.\n\n";
+		str += "    void BackGroundColor(int background);\n";
+		str += "    void BackGroundColor(int red, int grn, int blu);\n";
+		str += "    void BackGroundColor(COLORREF rgb);\n\n";
+		str += "Useful references :\n";
+		str += "<a href=\"https://www.html-color-codes.info/color-names\">https://www.html-color-codes.info/color-names</a>\n";
+		str += "<a href=\"https://www.computerhope.com/htmcolor.htm\">https://www.computerhope.com/htmcolor.htm</a>\n";
+		str += "<a href=\"http://www.temblast.com/dbplot/color5.htm/\">Windows system colours</a> can also be used (WinUser.h):\n";
+		str += "    dialog->BackGroundColor(GetSysColor(CTLCOLOR_BTN)); // Light blue\n";
+		str += "Openframeworks ofColor values and <a href=\"https://openframeworks.cc/examples/graphics/colorsExtendedExample/\">pre-defined names</a> can be used\n";
+		str += "    ofColor col = ofColor::cadetBlue;\n";
+		str += "    dialog->BackGroundColor(col.getHex())\n";
+		str += "Light colours are best for the dialog. Darker can be used\n";
+		str += "for text and buttons (see : TextColor, ButtonColor)\n";
+		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+	}
+
+	if (title == "Static help") {
+		str = "Static text can be used to add text anywhere in the dialog\n";
+		str += "Text can be multi-line. Allow sufficient height for the lines.\n\n";
+		str += "Text that is not a updated\n";
+		str += "    void AddText(std::string text, int x, int y,\n";
+		str += "        int width, int height, DWORD dwStyle = 0);\n\n";
+		str += "Text with an idependent title, updated with SetText\n";
+		str += "    void AddText(std::string text, int x, int y,\n";
+		str += "    int width, int height, DWORD dwStyle = 0);\n\n";
+		str += "Default style is left aligned (SS_LEFT)\n";
+		str += "Additional styles can be :\n";
+		str += "  SS_CENTER   - centered\n";
+		str += "  SS_RIGHT      - right aligned\n";
+		str += "  WS_BORDER - outlined\n";
+		str += "  SS_SUNKEN  - sunken edge\n";
+		str += "Add the style as an optional last argument\n\n";
+		str += "Text can also be colour - set before AddText :\n";
+		str += "    void TextColor(int hexcode);\n";
+		str += "    void TextColor(int red, int grn, int blu);\n";
+		str += "    void TextColor(COLORREF rgb);\n\n";
+		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+	}
+
+	if (title == "Group help") {
+		str = "A Group Box is an outline surrounding a group of controls.\n";
+		str += "It is not a control and has no title. The text describes the group.\n\n";
+		str += "    void AddGroup(std::string text, int x, int y, int width, int height);\n\n";
+		str += "The group text can also be colour - set before AddGroup\n";
+		str += "Use the same functions as for static text :\n";
+		str += "    void TextColor(int hexcode);\n";
+		str += "    void TextColor(int red, int grn, int blu);\n";
+		str += "    void TextColor(COLORREF rgb);\n\n";
+		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+	}
+
+	
+	if (title == "Hyperlink help") {
+		str = "A hyperlink is a special type of static text.\n\n";
+		str += "The first argument, the title, is displayed blue in the dialog.\n";
+		str += "The second argument, the text, is the action taken.\n";
+		str += "ofApp is notified when the hyperlink is clicked.\n\n";
+		str += "A hyperlink is typically a URL with a title the same as the\n";
+		str += "text to show the url. But the action text can be anything\n";
+		str += "recognized by Windows as a command.\n\n";
+		str += "    void AddHyperlink(std::string title, std::string text,\n";
+		str += "       int x, int y, int width, int height);\n\n";
+		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+	}
+
 	if (title == "Checkbox help") {
 		str = "Checkbox, radio and push buttons have a Title to\n";
 		str += "identify the control and Text to display on the control.\n";
@@ -661,6 +755,7 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 		str += "    Add the style as an optional last argument\n\n";
 		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
 	}
+
 	if (title == "Radio help") {
 		str = "Radio buttons are arranged in a group\n";
 		str += "The \"AddRadioGroup\" function starts a new group\n\n";
@@ -676,6 +771,7 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 		str += "    Add the style as an optional last argument\n\n";
 		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
 	}
+
 	if (title == "Button help") {
 		str = "Push buttons have an immediate action\n";
 		str += "and can be used for any purpose.\n\n";
@@ -686,6 +782,22 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 		str += "Style can be BS_DEFPUSHBUTTON for a default button.\n";
 		str += "or used to enhance the outline if no default is required.\n";
 		str += "Add the style as an optional last argument\n\n";
+		str += "The button text can be colour - set before AddButton\n";
+		str += "Use the same functions as for static text :\n";
+		str += "    void TextColor(int hexcode);\n";
+		str += "    void TextColor(int red, int grn, int blu);\n";
+		str += "    void TextColor(COLORREF rgb);\n";
+		str += "The button background can also be color\n";
+		str += "    void ButtonColor(int hexcode);\n";
+		str += "    void ButtonColor(int red, int grn, int blu);\n";
+		str += "    void ButtonColor(COLORREF rgb);\n";
+		str += "An image file for picture button (bmp, jpg, png, tga)\n";
+		str += "    void ButtonPicture(std::string path);\n";
+		str += "The button text can be changed\n";
+		str += "Style can be BS_TOP or BS_BOTTOM (default center)\n";
+		str += "    void ButtonText(std::string title, std::string text, DWORD dwStyle = 0);\n";
+		str += "The button text can be retrieved\n";
+		str += "    std::string GetButtonText(std::string title);\n\n";
 		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
 	}
 
@@ -776,43 +888,6 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
 	}
 
-	if (title == "Static help") {
-		str = "Static text can be used to add text anywhere in the dialog\n";
-		str += "Static text is not a control and has no title. Text can be multi-line.\n";
-		str += "Allow sufficient height for the number of lines.\n\n";
-		str += "    void AddText(std::string text, int x, int y,\n";
-		str += "        int width, int height, DWORD dwStyle = 0);\n\n";
-		str += "    x, y, width, height - position and dimensions\n";
-		str += "    Default style left aligned (SS_LEFT)\n";
-		str += "    Additional styles can be :\n";
-		str += "      SS_CENTER   - centered\n";
-		str += "      SS_RIGHT      - right aligned\n";
-		str += "      WS_BORDER - outlined\n";
-		str += "      SS_SUNKEN  - sunken edge\n";
-		str += "    Add the style as an optional last argument\n\n";
-		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
-	}
-
-	if (title == "Hyperlink help") {
-		str = "A hyperlink is a special type of static text.\n\n";
-		str += "The first argument, the title, is displayed blue in the dialog.\n";
-		str += "The second argument, the text, is the action taken.\n";
-		str += "ofApp is notified when the hyperlink is clicked.\n\n";
-		str += "A hyperlink is typically a URL with a title the same as the\n";
-		str += "text to show the url. But the action text can be anything\n";
-		str += "recognized by Windows as a command.\n\n";
-		str += "    void AddHyperlink(std::string title, std::string text,\n";
-		str += "       int x, int y, int width, int height);\n\n";
-		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
-	}
-
-	if (title == "Group help") {
-		str = "A Group Box is an outline surrounding a group of controls.\n";
-		str += "It is not a control and has no title. The text describes the group.\n\n";
-		str += "    void AddGroup(std::string text, int x, int y, int width, int height);\n\n";
-		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
-	}
-
 	if (title == "Save help") {
 		str = "Control values can be saved in an initialization file.\n\n";
 		str += "    void Save(std::string filename, bool bOverWrite = false);\n\n";
@@ -850,43 +925,43 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 //
 void ofApp::CreateAppDialog3()
 {
-	int xpos = 50;
+	int xpos = 70;
 	int ypos = 25;
 
 	std::string text = "- - - - -  SpoutMessageBox  - - - - -\n";
 	text += "An enhanced Windows MessageBox\n";
 	dialog3->AddText(text, 25, ypos, 365, 50, SS_CENTER | WS_BORDER);
-	ypos += 100;
+	ypos += 80;
 
 	//
 	// Push buttons for messagebox options
 	//
-	dialog3->AddButton("About", "", xpos, ypos, 120, 25);
+	dialog3->AddButton("About", "",    xpos, ypos, 120, 25);
 	ypos += 30;
-	dialog3->AddButton("Position", "", xpos, ypos, 120, 25);
+	dialog3->AddButton("Position", "",    xpos, ypos, 120, 25);
 	ypos += 30;
-	dialog3->AddButton("Simple", "", xpos, ypos, 120, 25);
+	dialog3->AddButton("Simple", "",      xpos, ypos, 120, 25);
 	ypos += 30;
-	dialog3->AddButton("Variable", "", xpos, ypos, 120, 25);
+	dialog3->AddButton("Variable", "",    xpos, ypos, 120, 25);
 	ypos += 30;
-	dialog3->AddButton("Timeout", "", xpos, ypos, 120, 25);
+	dialog3->AddButton("Timeout", "",     xpos, ypos, 120, 25);
 	ypos += 30;
-	dialog3->AddButton("Options", "", xpos, ypos, 120, 25);
+	dialog3->AddButton("Options", "",     xpos, ypos, 120, 25);
 	ypos += 30;
 	dialog3->AddButton("Instruction", "", xpos, ypos, 120, 25);
 
 	// Second group to the right
-	xpos = 200;
-	ypos = 125;
-	dialog3->AddButton("Icon", "", xpos, ypos, 120, 25);
+	xpos = 205;
+	ypos = 105;
+	dialog3->AddButton("Icon", "",      xpos, ypos, 120, 25);
 	ypos += 30;
-	dialog3->AddButton("Buttons", "", xpos, ypos, 120, 25);
+	dialog3->AddButton("Buttons", "",   xpos, ypos, 120, 25);
 	ypos += 30;
-	dialog3->AddButton("Edit", "", xpos, ypos, 120, 25);
+	dialog3->AddButton("Edit", "",      xpos, ypos, 120, 25);
 	ypos += 30;
-	dialog3->AddButton("Combobox", "", xpos, ypos, 120, 25);
+	dialog3->AddButton("Combobox", "",  xpos, ypos, 120, 25);
 	ypos += 30;
-	dialog3->AddButton("Modeless", "", xpos, ypos, 120, 25);
+	dialog3->AddButton("Modeless", "",  xpos, ypos, 120, 25);
 	ypos += 30;
 	dialog3->AddButton("Hyperlink", "", xpos, ypos, 120, 25);
 	ypos += 30;
@@ -897,7 +972,7 @@ void ofApp::CreateAppDialog3()
 	dialog3->AddButton("OK button", "OK", 150, ypos, 100, 30, BS_DEFPUSHBUTTON);
 
 	// Centre on the desktop
-	dialog3->SetPosition(-1, -1, 430, 440);
+	dialog3->SetPosition(-1, -1, 430, 425);
 
 }
 
@@ -948,6 +1023,7 @@ void ofApp::ofxWinDialogFunction3(std::string title, std::string text, int value
 	// used to centre on the application window.
 	// SpoutMessageBoxWindow can be used to provide a window handle
 	// for those functions that do not include one. This setting also
+	// applies for all subsequent SpoutMessageBox functions.
 	// applies for all subsequent SpoutMessageBox functions.
 	//     spoutMessageBoxWindow(HWND hwnd)
 	// A null handle returns to default centre on the desktop

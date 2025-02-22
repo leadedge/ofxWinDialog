@@ -53,6 +53,9 @@
 //--------------------------------------------------------------
 void ofApp::setup() {
 
+	// For debugging
+	// OpenSpoutConsole();
+
 	// Set the app name on the title bar
 	ofSetWindowTitle("ofxWinDialog example");
 
@@ -104,7 +107,7 @@ void ofApp::setup() {
 	// Custom font (option)
 	// The font can be any defined in Windows\Fonts
 	//    name   - "Tahoma", "Ms Shell Dlg", "Trebuchet", "Ms Shell Dlg" etc.
-	//    height - height in logical units
+	//    height - height in dialog units
 	//    weight - FW_NORMAL, FW_MEDIUM, FW_BOLD etc. Default FW_NORMAL.
 	// More details : https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-logfonta
 	// The default font is "Ms Shell Dlg" 8.
@@ -149,12 +152,16 @@ void ofApp::setup() {
 	//     dialog->BackGroundColor(COLORREF col);
 	// Useful references :
 	//     https://www.html-color-codes.info/color-names/
-	//     https://www.computerhope.com/htmcolor.htm
+	//     https://www.computerhope.com/htmcolor.htm/
 	//
 	// Light is best for the dialog
 	dialog2->BackGroundColor(0xF7E7CE); // Champagne - RGB(247, 231, 206)
-	// Windows system colours can be used (see WinUser.h):
-	// dialog2->BackGroundColor(GetSysColor(CTLCOLOR_BTN)); // Light blue
+	// Windows system colours can be used (WinUser.h):
+	// http://www.temblast.com/dbplot/color5.htm/
+	//     dialog2->BackGroundColor(GetSysColor(CTLCOLOR_BTN)); // Light blue
+	// Openframeworks ofColor values and pre-defined names can be used\n";
+	//     ofColor col = ofColor::cadetBlue;
+	//     dialog2->BackGroundColor(col.getHex());
 	//
 	// Text and Button colour can also be specified
 	// Darker colours can be used for text and buttons
