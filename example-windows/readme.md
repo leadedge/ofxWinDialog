@@ -1,8 +1,8 @@
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-example-windows
+## example-windows
 
-How to use ofxWinDialog independently of Openframeworks.
+### How to use ofxWinDialog independently of Openframeworks.
 
 ofxWinDialog reqires an application with an instance and window handle.
 This example creates an invisible window so that just the dialog is shown.
@@ -18,24 +18,24 @@ example-windows.sln is a Visual Studio 2022 solution file that is set up to buil
 
 ofxWinDialog is designed to use a callback function within
 an Openframeworks 'ofApp' class which is called when dialog
-controls are selected. The function can have any name.
-     void DialogFunction(std::string title, std::string text, int value)
+controls are selected. The function can have any name.\
+     <pre>void DialogFunction(std::string title, std::string text, int value);</pre>
 
 The Openframeworks application would normally register this
-function directly with ofxWinDialog :
-     dialog->AppDialogFunction(&ofApp::DialogFunction);
+function directly with ofxWinDialog :\
+     <pre>dialog->AppDialogFunction(&ofApp::DialogFunction);</pre>
 
 In order to use ofxWinDialog independently of Openframeworks,
-an 'ofApp' class is simulated within it :
-     ofApp app;
+an 'ofApp' class is simulated within it :\
+     <pre>ofApp app;</pre>
 
 The simulated ofApp class within ofxWinDialog has a callback function
-with the same signature as the Openframeworks callback function :
-     void ofxDialogFunction(std::string title, std::string text, int value)
+with the same signature as the Openframeworks callback function :\
+     <pre>void ofxDialogFunction(std::string title, std::string text, int value);</pre>
 
 The independent application sets this function to point to
-its own callback function, in this example 'MainDialogFunction'.
-     app.AppDialogFunction(MainDialogFunction);
+its own callback function, in this example 'MainDialogFunction'.\
+     <pre>app.AppDialogFunction(MainDialogFunction);<\pre>
 
 The ofApp class then forwards calls from ofxWinDialog to this function.
 
