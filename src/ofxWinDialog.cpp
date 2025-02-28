@@ -105,9 +105,19 @@
 //				   AddButton - if not a colour button retain the default
 //				   button background to avoid text over-write.
 //				   ButtonText optional style BS_TOP or BS_BOTTOM
+//		15.02.25 - Correct missing re-set of items vector in SetList
 //		16.02.25 - Correct combo item string return to ofApp
 //				   in CBN_SELCHANGE and GetControls
-//
+//		26.02.25 - ButtonText - change text colour if set by TextColor
+//				   GetControls - test for empty items in the combo or list control
+//		27.02.25 - Create a simulated 'ofApp' class within ofxWinDialog.h
+//				   and a 'standalone' define for use with applications
+//				   other than Openframeworks.
+//		28.02.25 - Create "AppDialogFunction" in ofApp class
+//				   Simplify application callback register for non-Openframeworks
+//				   applications using the ofApp class
+//				 - Allow for empty file string in Load and Save
+//				   Change default Save bOverWrite flag to true
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -140,9 +150,18 @@ ofxWinDialog::ofxWinDialog(ofApp* app, HINSTANCE hInstance,
 	// Default background brush is CTLCOLOR_DLG (light grey)
 	g_hBrush = CreateSolidBrush(GetSysColor(CTLCOLOR_DLG));
 
-	// ofApp callback function for return of control values
-	// Set by AppDialogFunction
+	//
+	// ofApp callback function for return of control values/
+	// Set by 'AppDialogFunction'.
+	//
+	#ifdef standalone
+	// Callback function of the simulated 'ofApp' class which
+	// will then forward to the application callback function.
+	pAppDialogFunction = &ofApp::ofxDialogFunction;
+	#else
+	// Openframeworks ofApp callback function
 	pAppDialogFunction = nullptr;
+	#endif
 
 	// Window class name for mutltiple dialogs
 	#ifdef UNICODE
@@ -475,6 +494,11 @@ void ofxWinDialog::ButtonText(std::string title, std::string text, DWORD dwStyle
 				// Set control text for owner draw
 				controls[i].Text = text;
 				controls[i].Min = (float)dwStyle; // Min is normally unused for a button
+				// Change button text colour if set by TextColor
+				if (g_TextColor != 0) {
+					controls[i].Index = Rgb2Hex(g_TextColor);
+					g_TextColor = 0;
+				}
 				// Update the control
 				RedrawWindow(controls[i].hwndControl, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASENOW | RDW_INTERNALPAINT);
 			}
@@ -915,6 +939,9 @@ void ofxWinDialog::SetList(std::string title, std::vector<std::string> items, in
 					int pos = (int)SendMessageA(hwndList, LB_ADDSTRING, 0, (LPARAM)items[i].c_str());
 					SendMessageA(hwndList, LB_SETITEMDATA, pos, (LPARAM)i);
 				}
+				// Reset the list items
+				controls[i].Items.clear();
+				controls[i].Items = items;
 				// Highlight the current item
 				SendMessageA(hwndList, LB_SETCURSEL, (WPARAM)index, 0L);
 			}
@@ -966,7 +993,9 @@ void ofxWinDialog::GetControls()
             && controls[i].Type != "OK"
             && controls[i].Type != "CANCEL") {
 			if (controls[i].Type == "Combo" || controls[i].Type == "List") {
-				DialogFunction(controls[i].Title, controls[i].Items[controls[i].Index], controls[i].Index);
+				// Test for empty items in the combo or list control
+				if(!controls[i].Items.empty())
+					DialogFunction(controls[i].Title, controls[i].Items[controls[i].Index], controls[i].Index);
             }
             else if (controls[i].Type == "Slider") {
                 DialogFunction(controls[i].Title, "", (int)(controls[i].SliderVal*100.0f));
@@ -1090,46 +1119,54 @@ void ofxWinDialog::Save(std::string filename, bool bOverWrite)
     // Section for the control in the initialization file
     std::string ControlSection;
 
-    // Check extension
-    size_t pos = filename.rfind(".ini");
-    if (pos == std::string::npos) {
-        // No extension or not ".ini"
-        pos = filename.rfind(".");
-        if (pos == std::string::npos) {
-            // No extension - add ".ini"
-            filename = filename + ".ini";
-        }
-        else {
-            // Extension not "ini" 
-            // Strip extension
-            filename = filename.substr(0, pos);
-            // Add ".ini"
-            filename = filename + ".ini";
-        }
-    }
+	// If no filename, create ini file from exe path
+	if (filename.empty()) {
+		inipath = GetExePath(true);
+		// Strip ".exe" and replace with ".ini"
+		inipath = inipath.substr(0, inipath.rfind(".")) + ".ini";
+	}
+	else {
 
-    // Check for full path
-    if (filename.find('/') != std::string::npos || filename.find('\\') != std::string::npos) {
-        inipath = filename;
-    }
-    else {
-        // filename only - add full path - (bin\data or executable directory)
-		std::string path = GetExePath();
-		// First try the bin\data folder
-		inipath = path;
-		inipath += "\\data\\";
-		// Does the folder exist ?
-		if (_access(inipath.c_str(), 0) != -1) {
-			// Openframeworks application
-			inipath += filename;
+		// Check extension
+		size_t pos = filename.rfind(".ini");
+		if (pos == std::string::npos) {
+			// No extension or not ".ini"
+			pos = filename.rfind(".");
+			if (pos == std::string::npos) {
+				// No extension - add ".ini"
+				filename = filename + ".ini";
+			} else {
+				// Extension not "ini"
+				// Strip extension
+				filename = filename.substr(0, pos);
+				// Add ".ini"
+				filename = filename + ".ini";
+			}
+		}
+
+		// Check for full path
+		if (filename.find('/') != std::string::npos || filename.find('\\') != std::string::npos) {
+			inipath = filename;
 		}
 		else {
-			// Executable folder
+			// filename only - add full path - (bin\data or executable directory)
+			std::string path = GetExePath();
+			// First try the bin\data folder
 			inipath = path;
-			inipath += "\\";
-			inipath += filename;
+			inipath += "\\data\\";
+			// Does the folder exist ?
+			if (_access(inipath.c_str(), 0) != -1) {
+				// Openframeworks application
+				inipath += filename;
+			}
+			else {
+				// Executable folder
+				inipath = path;
+				inipath += "\\";
+				inipath += filename;
+			}
 		}
-    }
+	}
 
     // Check if file exists if bOverWrite is false
     if (!bOverWrite && _access(inipath.c_str(), 0) != -1) {
@@ -1185,44 +1222,49 @@ bool ofxWinDialog::Load(std::string filename, std::string section)
     // Section for the control in the initialization file
     std::string ControlSection="";
 
-    // Check extension
-    size_t pos = filename.rfind(".ini");
-    if (pos == std::string::npos) {
-        // No extension or not ".ini"
-        pos = filename.rfind(".");
-        if (pos == std::string::npos) {
-            // No extension - add ".ini"
-            filename = filename + ".ini";
-        }
-        else {
-            // Extension not "ini"
-            printf("ofxWinDialog::Load\n%s is not an initialization file\n", filename.c_str());
-            return false;
-        }
-    }
-
-    // Check for full path
-    if(filename.find('/') != std::string::npos || filename.find('\\') != std::string::npos) {
-        inipath = filename;
-    }
-    else {
-		// filename only - add full path - (bin\data or executable directory)
-		std::string path = GetExePath();
-		// First try the bin\data folder
-		inipath = path;
-		inipath += "\\data\\";
-		// Does the folder exist ?
-		if (_access(inipath.c_str(), 0) != -1) {
-			// Openframeworks application
-			inipath += filename;
+	// If no filename, create ini file from exe path
+	if (filename.empty()) {
+		inipath = GetExePath(true);
+		// Strip ".exe" and replace with ".ini"
+		inipath = inipath.substr(0, inipath.rfind(".")) + ".ini";
+	}
+	else {
+		// Check extension
+		size_t pos = filename.rfind(".ini");
+		if (pos == std::string::npos) {
+			// No extension or not ".ini"
+			pos = filename.rfind(".");
+			if (pos == std::string::npos) {
+				// No extension - add ".ini"
+				filename = filename + ".ini";
+			} else {
+				// Extension not "ini"
+				printf("ofxWinDialog::Load\n%s is not an initialization file\n", filename.c_str());
+				return false;
+			}
+		}
+		// Check for full path
+		if (filename.find('/') != std::string::npos || filename.find('\\') != std::string::npos) {
+			inipath = filename;
 		}
 		else {
-			// Executable folder
+			// filename only - add full path - (bin\data or executable directory)
+			std::string path = GetExePath();
+			// First try the bin\data folder
 			inipath = path;
-			inipath += "\\";
-			inipath += filename;
+			inipath += "\\data\\";
+			// Does the folder exist ?
+			if (_access(inipath.c_str(), 0) != -1) {
+				// Openframeworks application
+				inipath += filename;
+			} else {
+				// Executable folder
+				inipath = path;
+				inipath += "\\";
+				inipath += filename;
+			}
 		}
-    }
+	}
 
     // Check that the file exists in case an extension was added
     if (_access(inipath.c_str(), 0) == -1) {
@@ -2418,7 +2460,8 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                          if (controls[i].Type == "Button") {
                              if (LOWORD(wParam) == controls[i].ID) { // ID of the button selected
                                  // Inform ofApp
-                                 DialogFunction(controls[i].Title, "", 1);
+								 // LJ DEBUG
+                                 DialogFunction(controls[i].Title, " ", 1);
                              }
                          } // end Push button
                      } // end all button controls

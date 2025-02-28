@@ -21,7 +21,63 @@
 #include "../libs/SpoutUtils.h"
 using namespace spoututils;
 
+// Enable this define to use ofxWinDialog with
+// applications other than Openframeworks.
+// #define standalone
+
+#ifdef standalone
+//
+// ofxWinDialog is designed to use a callback function within
+// an Openframeworks 'ofApp' class which is called when dialog
+// controls are selected. The function can have any name.
+//      void DialogFunction(std::string title, std::string text, int value)
+//
+// The Openframeworks application would normally register this
+// function directly with ofxWinDialog :
+//      dialog->AppDialogFunction(&ofApp::DialogFunction);
+//
+// In order to use ofxWinDialog independently of Openframeworks,
+// an 'ofApp' class is simulated within it :
+//      ofApp app;
+//
+// The simulated ofApp class within ofxWinDialog has a callback function
+// with the same signature as the Openframeworks callback function :
+//      void ofxDialogFunction(std::string title, std::string text, int value)
+//
+// The independent application sets this function to point to
+// its own callback function, in this example 'MainDialogFunction'.
+//      app.AppDialogFunction(MainDialogFunction);
+//
+// The ofApp class then forwards calls from ofxWinDialog to this function.
+//
+class ofApp {
+
+public:
+
+	// Type definition for the callback function signature
+	typedef void (*DialogCallback)(std::string title, std::string text, int value);
+
+	// Function pointer to store the callback
+	DialogCallback dialogCallback = nullptr;
+
+	// Callback function with the same signature as in the original code
+	void ofxDialogFunction(std::string title, std::string text, int value) {
+		// Call the main function's callback
+		if (dialogCallback) {
+			dialogCallback(title, text, value);
+		}
+	}
+
+	// Method to set the callback from main
+	void AppDialogFunction(DialogCallback callback) {
+		dialogCallback = callback;
+	}
+
+};
+#else
 class ofApp; // Forward declaration
+#endif
+
 
 #define MAX_LOADSTRING 100
 
@@ -244,12 +300,12 @@ public:
     void Refresh();
 
     // Save controls initialization file with optional overwrite
-    void Save(std::string filename, bool bOverWrite = false);
+    void Save(std::string filename="", bool bOverWrite = true);
 
     // Load controls from an initialization file
     // The section name can be used to retrieve specific controls
     // ofApp calls GetControls to get the updated values
-    bool Load(std::string filename, std::string section="");
+    bool Load(std::string filename="", std::string section="");
 
     // Set icon for the dialog window
     void SetIcon(HICON hIcon);
@@ -260,9 +316,8 @@ public:
     // Set a custom font
     // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-logfonta
     // name    - e.g. "Tahoma", "Ms Shell Dlg" etc.
-    // height  - height in logical units
+    // height  - height in dialog units
     // weight  - FW_NORMAL, FW_BOLD etc. (default FW_NORMAL)
-	// height in dialog units
 	void SetFont(std::string name, LONG height, LONG weight = FW_NORMAL);
 
 	// Return the font height set
