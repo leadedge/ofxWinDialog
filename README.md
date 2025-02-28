@@ -45,7 +45,7 @@ ofxWinDialog has been developed using Visual Studio 2022.
 
 - Add #include "ofxWinDialog.h" to the ofApp header file
 
-### Examples
+### Openframeworks examples
 
 Using the Openframeworks project generator, create a new project, include ofxWinDialog as an addon and generate the project.
 
@@ -99,6 +99,10 @@ Close and re-open as required, for example with Mouse or Key press :
 		hwndDialog = dialog->Open("Settings");
 
 The Close() function sends a "WM_DESTROY" message to the callback function, where the dialog handle can be set to NULL.
+
+### Windows example
+
+The 'example-windows' folder contains a complete Visual Stuidio 2022 solution with a Win32 application that shows how to use ofxWinDialog independently of Openframeworks. The principle is the same for any windowed application. Refer to the readme file in the example folder for details.
 
 ### SpoutMessageBox
 
