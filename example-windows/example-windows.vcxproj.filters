@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="ofxWinDialog">
+      <UniqueIdentifier>{ac6fb01e-d2ad-457d-90af-2052e8de7e29}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ofxWinDialog\libs">
+      <UniqueIdentifier>{8db60cca-0df1-4f58-a011-bfb5a1fe2293}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ofxWinDialog\src">
+      <UniqueIdentifier>{9acf1a2a-83d4-4b95-904d-c494ad4eba55}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="example-windows.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\addons\ofxWinDialog\libs\SpoutUtils.cpp">
+      <Filter>ofxWinDialog\libs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\addons\ofxWinDialog\src\ofxWinDialog.cpp">
+      <Filter>ofxWinDialog\src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\addons\ofxWinDialog\libs\SpoutUtils.h">
+      <Filter>ofxWinDialog\libs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxWinDialog\libs\stb_image.h">
+      <Filter>ofxWinDialog\libs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxWinDialog\src\ofxWinDialog.h">
+      <Filter>ofxWinDialog\src</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
