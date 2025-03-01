@@ -27,7 +27,7 @@ void ofApp::CreateAppDialog()
 	// setting the y position makes it easier to
 	// adjust their relative vertical positions.
 	//
-	int ypos = 20;
+	int ypos = 10;
 
 	//
 	// Static text
@@ -38,29 +38,40 @@ void ofApp::CreateAppDialog()
 	//	  SS_RIGHT  - right aligned
 	//	  WS_BORDER - outlined
 	//	  SS_SUNKEN - sunken edge
-	// Static text is not a control and has not title
 	// Text can be multi-line. Allow sufficient height for the number of lines.
-	std::string text = "- - - - -  ofxWinDialog  - - - - -\n";
-	dialog->AddText(text, 25, ypos, 345, 70, SS_CENTER | WS_BORDER);
-	ypos += 30;
+	// Static text can have a title and text for update with SetText
+	// or text without a title is it is not updated.
+	//
+	// Text colour can be specified
+	// See also ButtonColor and BackGroundColor
+	dialog->TextColor(0xB22222); // FireBrick - RGB(178, 34, 34)
+	//
+	std::string text = "- - - - - - - - - - - - - - - - -";
+	dialog->AddText(text, 25, ypos, 345, 80, SS_CENTER | WS_BORDER);
+	ypos += 25;
 
 	//
 	// Hyperlink
 	//
 	// This is static text modified with the SS_NOTIFY style so that
-	// it is detected by the event handler.
+	// it is detected by the event handler. Colour is always blue
+	// and a hand cursor shows to indicate a hyperlink.
+	// The dialog is closed when the hyperlink is selected.
 	//
 	// The first argument, the title, is displayed blue in the dialog.
-	// The second argumnent, the text, indicates the action to be taken.
-	// This is usually a URL but can be anything recognized
-	// by Windows as a command, such as a program path.
-	// In this example, the title is the same as the text to show the url.
+	// The second argumennt, the text, indicates the action to be taken.
+	// This is usually a URL but can be anything recognized by Windows
+	// as a command, such as a program path. In many cases, the title
+	// is the same as the text to show the url.
 	//
-	dialog->AddHyperlink("https://spout.zeal.co/", "https://spout.zeal.co/", 25, ypos, 345, 30);
-
-	// Here the text outline encloses the hyperlink line.
+	dialog->AddHyperlink("ofxWinDialog", "https://github.com/leadedge/ofxWinDialog/", 25, ypos, 345, 25);
+	ypos += 25;
+	// Bottom line
+	dialog->TextColor(0xB22222);
+	dialog->AddText("- - - - - - - - - - - - - - - - -", 30, ypos, 335, 25, SS_CENTER);
+	// Here the text outline encloses the hyperlink.
 	// Increment the y position for the rest of the controls
-	ypos += 90;
+	ypos += 80;
 
 	//
 	// Checkbox
@@ -565,8 +576,7 @@ void ofApp::ofxWinDialogFunction(std::string title, std::string text, int value)
 	// Help button
 	// Open the help dialog
 	if (title == "Help button") {
-		// Leave the Settings dialog open
-		// and open again only if closed
+		// Do not open again if it is already open
 		if(!hwndDialog2)
 			hwndDialog2 = dialog2->Open("Help");
 	}
