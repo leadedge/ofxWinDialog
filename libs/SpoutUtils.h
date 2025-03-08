@@ -58,6 +58,7 @@
 #include <Shellapi.h> // for shellexecute
 #include <Commctrl.h> // For TaskDialogIndirect
 #include <math.h> // for round
+#include <algorithm> // for string character remove
 
 //
 // C++11 timer is only available for MS Visual Studio 2015 and above.
@@ -378,6 +379,8 @@ namespace spoututils {
 		bool OpenSpoutPanel(const char* message);
 		// Application window
 		HWND hwndMain = NULL;
+		// Taskdialog window to prevent multiple open
+		HWND hwndTask = NULL;
 		// Position for TaskDialog window centre
 		POINT TDcentre = {};
 		// For topmost

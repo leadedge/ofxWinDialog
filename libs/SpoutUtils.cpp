@@ -222,7 +222,16 @@
 		02.02.25 - GetSDKversion - optional return integer version number
 				   GetSpoutVersion - get the user Spout version string from the registry
 				   optional return integer version number
-
+		09.02.25 - Remove debug comments for MB_USERBUTTON (no longer used)
+		17.02.25 - Adjust combo box width to the longest item string
+				   Use CBS_DROPDOWNLIST style for list only
+		04.03.25 - Add #include <algorithm> to SpoutUtils.h (PR #120)
+		07.03.25 - MessageTaskDialog -
+				   Add global "hwndTask" to return if TaskDialog is open.
+				   Move modeless check to first.
+				   Disable modeless mode after SpoutPanel open so it is one-off.
+				   Window handle is HWND passed in or specified by SpoutMessageBoxWindow.
+		08.01.25 - Add missing SPOUT_DLLEXP to SpoutMessageBoxIcon and SpoutMessageBoxButton
 */
 
 #include "SpoutUtils.h"
@@ -1061,8 +1070,6 @@ namespace spoututils {
 	// including taskdialog main instruction large text
 	int SpoutMessageBox(HWND hwnd, LPCSTR message, LPCSTR caption, UINT uType, const char* instruction, DWORD dwMilliseconds)
 	{
-		hwnd = hwnd;
-
 		// Set global main instruction
 		int size_needed = MultiByteToWideChar(CP_UTF8, 0, instruction, (int)strlen(instruction), NULL, 0);
 		wstrInstruction.resize(size_needed);
@@ -1137,7 +1144,7 @@ namespace spoututils {
 	// Function: SpoutMessageBoxIcon
 	// Custom icon for SpoutMessageBox from resources
 	// Use together with MB_USERICON
-	void SpoutMessageBoxIcon(HICON hIcon)
+	void SPOUT_DLLEXP SpoutMessageBoxIcon(HICON hIcon)
 	{
 		hTaskIcon = hIcon;
 	}
@@ -1146,7 +1153,7 @@ namespace spoututils {
 	// Function: SpoutMessageBoxIcon
 	// Custom icon for SpoutMessageBox from file
 	// Use together with MB_USERICON
-	bool SpoutMessageBoxIcon(std::string iconfile)
+	bool SPOUT_DLLEXP SpoutMessageBoxIcon(std::string iconfile)
 	{
 		hTaskIcon = reinterpret_cast<HICON>(LoadImageA(nullptr, iconfile.c_str(), IMAGE_ICON, 0, 0, LR_LOADFROMFILE));
 		return (hTaskIcon != nullptr);
@@ -1155,7 +1162,7 @@ namespace spoututils {
 	// ---------------------------------------------------------
 	// Function: SpoutMessageBoxButton
 	// Custom button for SpoutMessageBox
-	void SpoutMessageBoxButton(int ID, std::wstring title)
+	void SPOUT_DLLEXP SpoutMessageBoxButton(int ID, std::wstring title)
 	{
 		TDbuttonID.push_back(ID);
 		TDbuttonTitle.push_back(title);
@@ -1853,23 +1860,6 @@ namespace spoututils {
 		//
 		int MessageTaskDialog(HWND hWnd, const char* content, const char* caption, DWORD dwButtons, DWORD dwMilliseconds)
 		{
-
-			// HWND passed in
-			// Can also be specified by SpoutMessageBoxWindow
-			if (!hwndMain) hwndMain = hWnd;
-
-			// hinstance of the window
-			HINSTANCE hInst = nullptr;
-			if (hWnd)
-				hInst = (HINSTANCE)GetWindowLongPtrA(hwndMain, GWLP_HINSTANCE);
-
-			// Use a custom icon if set
-			if (hTaskIcon) dwButtons |= MB_USERICON;
-
-			// Use multiple buttons if set
-			// LJ DEBUG
-			// if (TDbuttonID.size() > 0) dwButtons |= MB_USERBUTTON;
-
 			//
 			// TaskDialogIndirect is modal and stops the application.
 			// When used within a plugin or similar this can freeze the host application.
@@ -1889,8 +1879,6 @@ namespace spoututils {
 			//   2) Any dialog is requested that requires user input
 			//
 			if (bModeless
-				// LJ DEBUG
-				// && (dwButtons & MB_USERBUTTON)  != MB_USERBUTTON
 				&& TDbuttonID.size() == 0
 				&& (dwButtons & MB_OKCANCEL)    != MB_OKCANCEL
 				&& (dwButtons & MB_YESNO)       != MB_YESNO
@@ -1906,9 +1894,31 @@ namespace spoututils {
 					str += std::to_string(PtrToUint(hTaskIcon));   // user icon
 					str += ",";
 				}
+
 				// Pass on to SpoutPanel
-				return OpenSpoutPanel(str.c_str());
+				bool bRet = OpenSpoutPanel(str.c_str());
+
+				// Disable modeless mode so it is one-off
+				bModeless = false;
+				return bRet;
+
 			}
+
+			// Return if TaskDialog is already open
+			if (hwndTask) {
+				return 0;
+			}
+
+			// Window handle is HWND passed in or specified by SpoutMessageBoxWindow
+			if (hwndMain)
+				hWnd = hwndMain;
+
+			// hinstance of the window
+			HINSTANCE hInst = nullptr;
+			if (hWnd) hInst = (HINSTANCE)GetWindowLongPtrA(hWnd, GWLP_HINSTANCE);
+
+			// Use a custom icon if set
+			if (hTaskIcon) dwButtons |= MB_USERICON;
 
 			//
 			// Drop through for modal TaskDialogIndirect
@@ -1957,8 +1967,6 @@ namespace spoututils {
 			//
 			DWORD dwb = dwl & 0x0F; // buttons code
 			DWORD dwCommonButtons = MB_OK;
-			// LJ DEBUG
-			// if (dwb == MB_USERBUTTON) { // 7 - SpoutSettings defined - used alone
 			//
 			// User buttons
 			//
@@ -2051,7 +2059,7 @@ namespace spoututils {
 			int nRadioButton          = 0;
 			TASKDIALOGCONFIG config   = {0};
 			config.cbSize             = sizeof(config);
-			config.hwndParent         = hwndMain;
+			config.hwndParent         = hWnd;
 			config.hInstance          = hInst;
 			config.pszWindowTitle     = wstrCaption.c_str();
 			config.hMainIcon          = hMainIcon;
@@ -2066,8 +2074,6 @@ namespace spoututils {
 			// Otherwise use common buttons
 			config.nDefaultButton = IDOK;
 
-			// LJ DEBUG
-			// if (dwb == MB_USERBUTTON) {
 			if (TDbuttonID.size() > 0) {
 				config.pButtons = buttons;
 				config.cButtons = (UINT)TDbuttonID.size()+1; // Includes OK button
@@ -2143,6 +2149,9 @@ namespace spoututils {
 #ifdef _MSC_VER
 			
 			if (uNotification == TDN_CREATED) {
+
+				// Taskdialog window open
+				hwndTask = hwnd;
 
 				// For general use
 				RECT rect{};
@@ -2234,26 +2243,61 @@ namespace spoututils {
 					y = rect.top;
 					w = 395;
 
-					// Allow for increased height with an icon
-					// and position further right
-					if (h > 90) {
-						y += 20;
-						x += 40;
-						w -= 40;
+					// Find combo box width from the longest item string
+					LONG maxw = 0L;
+					if (comboitems.size() > 0) {
+						HDC hdc = GetDC(hwnd);
+						HFONT hFont = (HFONT)SendMessage(hwnd, WM_GETFONT, 0, 0);
+						SelectObject(hdc, hFont);
+						for (int i = 0; i < (int)comboitems.size(); i++) {
+							// Text width for the current string
+							SIZE size;
+							GetTextExtentPoint32A(hdc, (LPCSTR)comboitems[i].c_str(), (int)comboitems[i].size(), &size);
+							if (size.cx > maxw)
+								maxw = size.cx;
+        				}
+						ReleaseDC(hwnd, hdc);
+						// Add padding for the combo box button
+						maxw += 35;
+					}
+
+					// Adjust to the maximum width required
+					w = 0;
+					if(maxw > 0)
+						w = (int)maxw;
+					if(w < 200) w = 200; // Minimum combo width
+					int dw = rect.right-rect.left;
+					if (w < dw) {
+						// If the width is less than the dialog adjust the x position 
+						x = (dw-w)/2;
+						if (*pTimeout && *pTimeout == 1000000) {
+							// Position in the footer area if there is message content
+							// Less width due to buttons
+							x = rect.left+10;
+							y = rect.bottom-40;
+							w = 220; // Fixed width
+						}
+						else if (h > 90) { // Increased client size for icon
+							// Allow for increased height and position further right
+							y += 20;
+							if (x < 20) {
+								x += 40;
+								w -= 40;
+							}
+						}
+					}
+					else {
+						// If the width is larger, reduce to fit the dialog
+						w = dw-4;
+						x = 2;
 					}
 
 					// Combo box inital height. Changed by content.
 					h = 100;
 
-					// Position in the footer area if there is message content
-					// Less width due to buttons
-					if (*pTimeout && *pTimeout == 1000000) {
-						x = rect.left+10;
-						y = rect.bottom-40;
-						w = 220;
-					}
+					// Use CBS_DROPDOWNLIST style for list only
 					hCombo = CreateWindowExA(WS_EX_CLIENTEDGE, "COMBOBOX", "",
-						CBS_DROPDOWN | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE,
+						CBS_DROPDOWNLIST | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE,
 						x, y, w, h, hwnd, (HMENU)IDC_TASK_COMBO, hInstTD, NULL);
 
 					// Add combo box items
@@ -2263,8 +2307,6 @@ namespace spoututils {
 						}
 						// Display an initial item in the selection field
 						SendMessageA(hCombo, CB_SETCURSEL, (WPARAM)comboindex, (LPARAM)0);
-						// Select all text in the edit field
-						SendMessage(hCombo, CB_SETEDITSEL, 0, MAKELONG(0, -1));
 					}
 
 					// Remove icons from the caption
@@ -2275,9 +2317,14 @@ namespace spoututils {
 					BringWindowToTop(hCombo);
 
 				}
+
 			}
 
 			if (uNotification == TDN_DESTROYED) {
+
+				// Taskdialog window closed
+				hwndTask = nullptr;
+
 				if (bEdit) {
 					// Get text from edit control
 					char text[MAX_PATH]{};

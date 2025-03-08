@@ -664,6 +664,9 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 		hwndDialog2 = nullptr;
 	}
 
+	// Load an icon to avoid triggering audio if MB_ICONIFORMATION is used
+	SpoutMessageBoxIcon(LoadIcon(NULL, IDI_INFORMATION));
+
 	//
 	// Help buttons use SpoutMessageBox in SpoutUtils
 	//
@@ -698,7 +701,7 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 		str += "    dialog->BackGroundColor(col.getHex())\n";
 		str += "Light colours are best for the dialog. Darker can be used\n";
 		str += "for text and buttons (see : TextColor, ButtonColor)\n";
-		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+		SpoutMessageBox(hwndDialog2, str.c_str(), "ofxWinDialog", MB_OK | MB_TOPMOST);
 	}
 
 	if (title == "Static help") {
@@ -721,7 +724,7 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 		str += "    void TextColor(int hexcode);\n";
 		str += "    void TextColor(int red, int grn, int blu);\n";
 		str += "    void TextColor(COLORREF rgb);\n\n";
-		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+		SpoutMessageBox(hwndDialog2, str.c_str(), "ofxWinDialog", MB_OK | MB_TOPMOST);
 	}
 
 	if (title == "Group help") {
@@ -733,7 +736,7 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 		str += "    void TextColor(int hexcode);\n";
 		str += "    void TextColor(int red, int grn, int blu);\n";
 		str += "    void TextColor(COLORREF rgb);\n\n";
-		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+		SpoutMessageBox(hwndDialog2, str.c_str(), "ofxWinDialog", MB_OK | MB_TOPMOST);
 	}
 
 	
@@ -747,7 +750,7 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 		str += "recognized by Windows as a command.\n\n";
 		str += "    void AddHyperlink(std::string title, std::string text,\n";
 		str += "       int x, int y, int width, int height);\n\n";
-		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+		SpoutMessageBox(hwndDialog2, str.c_str(), "ofxWinDialog", MB_OK | MB_TOPMOST);
 	}
 
 	if (title == "Checkbox help") {
@@ -763,7 +766,7 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 		str += "    Text style can be BS_LEFT (default), BS_CENTER or BS_RIGHT.\n";
 		str += "    Control style can be BS_RIGHTBUTTON for a button at the right.\n";
 		str += "    Add the style as an optional last argument\n\n";
-		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+		SpoutMessageBox(hwndDialog2, str.c_str(), "ofxWinDialog", MB_OK | MB_TOPMOST);
 	}
 
 	if (title == "Radio help") {
@@ -779,7 +782,7 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 		str += "    Text style can be BS_LEFT (default), BS_CENTER or BS_RIGHT.\n";
 		str += "    Control style can be BS_RIGHTBUTTON for a button at the right.\n";
 		str += "    Add the style as an optional last argument\n\n";
-		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+		SpoutMessageBox(hwndDialog2, str.c_str(), "ofxWinDialog", MB_OK | MB_TOPMOST);
 	}
 
 	if (title == "Button help") {
@@ -808,7 +811,7 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 		str += "    void ButtonText(std::string title, std::string text, DWORD dwStyle = 0);\n";
 		str += "The button text can be retrieved\n";
 		str += "    std::string GetButtonText(std::string title);\n\n";
-		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+		SpoutMessageBox(hwndDialog2, str.c_str(), "ofxWinDialog", MB_OK | MB_TOPMOST);
 	}
 
 	if (title == "Spin help") {
@@ -822,7 +825,7 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 		str += "    index - starting value\n";
 		str += "    dwStyle - style is the same as for static text but can include alignment\n";
 		str += "    for the spin control, UDS_ALIGNLEFT or UDS_ALIGNRIGHT (default)\n";
-		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+		SpoutMessageBox(hwndDialog2, str.c_str(), "ofxWinDialog", MB_OK | MB_TOPMOST);
 	}
 
 	if (title == "Slider help") {
@@ -845,8 +848,9 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 		str += "Slider controls normally inform ofApp continuously when the position changes.\n";
 		str += "In some cases it is preferable only when the mouse button is released.\n\n";
 		str += "    void SliderMode(bool bOnce)\n\n";
-		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+		SpoutMessageBox(hwndDialog2, str.c_str(), "ofxWinDialog", MB_OK | MB_TOPMOST);
 	}
+
 	if (title == "Combo help") {
 		str = "A combo control allows selection from a list of items.\n";
 		str += "The control is a drop-down list with a depth of one item.\n";
@@ -862,7 +866,7 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 		str += "    x, y, width, height - position and dimensions\n";
 		str += "    std::vector<std::string> items - vector of string items\n";
 		str += "    index - initial index\n\n";
-		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+		SpoutMessageBox(hwndDialog2, str.c_str(), "ofxWinDialog", MB_OK | MB_TOPMOST);
 	}
 
 	if (title == "List help") {
@@ -877,7 +881,7 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 		str += "    x, y, width, height - position and dimensions\n";
 		str += "    std::vector<std::string> items - vector of string items\n";
 		str += "    index - initial index\n\n";
-		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+		SpoutMessageBox(hwndDialog2, str.c_str(), "ofxWinDialog", MB_OK | MB_TOPMOST);
 	}
 		
 	if (title == "Edit help") {
@@ -895,7 +899,7 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 		str += "    The control outline can be enhanced with :\n";
 		str += "    WS_BORDER, WS_DLGFRAME or WS_THICKFRAME.\n";
 		str += "    Add the style as an optional last argument\n\n";
-		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+		SpoutMessageBox(hwndDialog2, str.c_str(), "ofxWinDialog", MB_OK | MB_TOPMOST);
 	}
 
 	if (title == "Save help") {
@@ -909,14 +913,14 @@ void ofApp::ofxWinDialogFunction2(std::string title, std::string text, int value
 		str += "A previously saved file can be loaded to restore the values.\n";
 		str += "and the section to load can be specified\n\n";
 		str += "    void Load(std::string filename, std::string section=\"\");\n";
-		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+		SpoutMessageBox(hwndDialog2, str.c_str(), "ofxWinDialog", MB_OK | MB_TOPMOST);
 	}
 
 	if (title == "Messagebox help") {
 		// Open the third dialog - SpoutMessageBox functions
 		// The help dialog can remain open but is better closed
 		dialog2->Close();
-		dialog3->Open("SpoutMessageBox");
+		hwndDialog3 = dialog3->Open("SpoutMessageBox");
 
 	}
 
@@ -993,6 +997,9 @@ void ofApp::ofxWinDialogFunction3(std::string title, std::string text, int value
 {
 	if (title == "WM_DESTROY") {
 		hwndDialog3 = nullptr;
+		// The window handle will be different
+		// when the dialog opens again.
+		SpoutMessageBoxWindow(NULL);
 	}
 
 	//
@@ -1039,25 +1046,25 @@ void ofApp::ofxWinDialogFunction3(std::string title, std::string text, int value
 	// A null handle returns to default centre on the desktop
 	//
 	if (title == "Position") {
-		str = "SpoutMessageBox opens centred on the desktop by default.\n";
-		str += "Some functions include a window handle argument which\n";
-		str += "can be used to centre on the application window.\n\n";
-		str += "SpoutMessageBoxWindow provides a window handle\n";
-		str += "for those functions that do not include one, and applies\n";
-		str += "for all subsequent SpoutMessageBox functions.\n";
-		str += "A null handle returns to default centre on the desktop.\n\n";
+		str = "SpoutMessageBox opens centred on the application or dialog\n";
+		str += "window if a handle argument is passed in, or on the desktop\n";
+		str += "for a null window handle.\n\n";
+		str += "\"SpoutMessageBoxWindow\" provides a window handle in place\n";
+		str += "of the window handle argument, and all functions centre on\n";
+		str += "that window thereafter. A null handle returns to the centre\n";
+		str += "position depending on the window handle passed in.\n\n";
 		str += "    spoutMessageBoxWindow(HWND hwnd)\n\n";
-		str += "Click \"Window\" to center messages on the app window\n";
+		str += "Click \"Window\" to center messages on the window\n";
 		str += "Click \"Desktop\" to center on the desktop\n";
 		str += "Click \"OK\" for no change\n\n";
-		str += "If the application window is centred on the desktop now,\n";
+		str += "If the application or dialog window is centred on the desktop now,\n";
 		str += "move it to one side so the effect can be more easily seen.\n";
 		SpoutMessageBoxButton(1000, L"Window");
 		SpoutMessageBoxButton(2000, L"Desktop");
 		int iret = SpoutMessageBox(NULL, str.c_str(), "Position", MB_TOPMOST | MB_OK);
 		if (iret == 1000) { // Window centre
-			SpoutMessageBoxWindow(g_hWnd);
-			SpoutMessageBox(NULL, "Messages will be centred on the application window", " ", MB_TOPMOST);
+			SpoutMessageBoxWindow(hwndDialog3);
+			SpoutMessageBox(NULL, "Messages will be centred on the dialog window", " ", MB_TOPMOST);
 		}
 		else if (iret == 2000) { // Desktop centre
 			SpoutMessageBoxWindow(NULL);
@@ -1090,6 +1097,7 @@ void ofApp::ofxWinDialogFunction3(std::string title, std::string text, int value
 		str += "  int SpoutMessageBox(const char * caption, const char* format, ...);\n";
 		str += "  int SpoutMessageBox(const char * caption,  UINT uType, const char* format, ...);\n\n";
 		str += "For example :\n";
+		str += "    float result = 123.0;\n";
 		str += "    float result = 123.0;\n";
 		str += "    int error = 2;\n";
 		str += "    char *errorstring = \"wrong\";\n";
@@ -1228,8 +1236,8 @@ void ofApp::ofxWinDialogFunction3(std::string title, std::string text, int value
 		int iret = SpoutMessageBox(NULL, str.c_str(), "Edit control", MB_TOPMOST | MB_OK);
 		std::string editstring;
 		if (iret == 1000) {
-			//                     hwnd  message  caption                    buttons                edit string
-			iret = SpoutMessageBox(NULL, NULL, "Text entry with caption", MB_TOPMOST | MB_OKCANCEL, editstring);
+			//                     hwnd       message  caption                    buttons                edit string
+			iret = SpoutMessageBox(hwndDialog3, NULL, "Text entry with caption", MB_TOPMOST | MB_OKCANCEL, editstring);
 			if (iret != 0 && !editstring.empty())
 				SpoutMessageBox(NULL, editstring.c_str(), "Text entered", MB_TOPMOST | MB_OK);
 		}
@@ -1315,18 +1323,17 @@ void ofApp::ofxWinDialogFunction3(std::string title, std::string text, int value
 	// Spout must have been downloaded and SpoutPanel or SpoutSettings run at least once.
 	// Modeless is disabled for any dialog requiring user input.
 	if (title == "Modeless") {
-		str = "A MessageBox activated directly form an application is normally modal\n";
-		str += "and stops the application until closed.\n";
-		str += "\"Modeless\" mode transfers the message to another program\n";
-		str += "\"SpoutPanel.exe\" so the dialog does not stop the application's operation.\n";
-		str += "The MessageBox remains open even if the applicaion is closed first.\n";
+		str = "A MessageBox activated directly from a window is normally modal\n";
+		str += "and stops the window messages until closed.\n\n";
+		str += "\"Modeless\" mode transfers the message to an independent program\n";
+		str += "\"SpoutPanel\" so the dialog does not stop the window's operation.\n\n";
+		str += "The MessageBox remains open even if the window is closed first.\n";
 		str += "\"Modeless\" is disabled for any dialog requiring user input.\n\n";
 		str += "       SpoutMessageBoxModeless(true);\n";
 		str += "       SpoutMessageBoxModeless(false);\n\n";
 		str += "For this to work, you must have downloaded a <a href=\"https://github.com/leadedge/Spout2/releases/\">Spout release</a>\n";
 		str += "and run SpoutPanel or SpoutSettings at least once.\n\n";
-		str += "In this example, the messagebox is activated from a modeless dialog\n";
-		str += "so the effect cannot be demonstrated.\n\n";
+		SpoutMessageBoxModeless(true);
 		SpoutMessageBox(NULL, str.c_str(), "Modeless message", MB_TOPMOST | MB_OK);
 	}
 
