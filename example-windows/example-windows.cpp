@@ -93,6 +93,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	// Font for the dialog
 	dialog->SetFont("Segoe UI", 10);
 
+	// Load an icon from Windows Shell32.dll
+	HICON hIcon = dialog->LoadWindowsIcon(27);
+	dialog->SetIcon(hIcon);
+
 	// Add controls and design the main dialog
 	CreateAppDialog();
 
@@ -178,11 +182,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow) {
  void CreateAppDialog() {
 
 	int ypos = 20;
-	std::string text = "- - - - -  ofxWinDialog  - - - - -\n";
-	dialog->AddText(text, 25, ypos, 345, 70, SS_CENTER | WS_BORDER);
-	ypos += 30;
-	dialog->AddHyperlink("https://spout.zeal.co/", "https://spout.zeal.co/", 25, ypos, 345, 30);
-	ypos += 90;
+	dialog->AddHyperlink("ofxWinDialog", "https://github.com/leadedge/ofxWinDialog/", 25, ypos, 345, 30, WS_BORDER);
+	ypos += 70;
 
 	dialog->AddCheckBox("Select day", "", 35, ypos, 160, 25, bSelectDay);
 	ypos += 35;
@@ -212,7 +213,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow) {
 	// Enclose all controls in a group box
 	// Caption colour also gives a slightly darker border
 	dialog->TextColor(0xB22222); // FireBrick - RGB(178, 34, 34)
-	dialog->AddGroup("Options", 25, 105, 345, ypos - 120);
+	dialog->AddGroup("Options", 25, 60, 345, ypos-80);
 
 	//
 	// Save, Load, Reset
@@ -238,7 +239,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow) {
 	dialog->SetSection("List 1", "Options");
 
 	// This is important or the dialog will never open
-	dialog->SetPosition(-1, -1, 410, 390);
+	dialog->SetPosition(-1, -1, 410, 330);
 
 }
 
@@ -325,7 +326,7 @@ void MainDialogFunction(std::string title, std::string text, int value) {
 		str += "its own callback function, in this example 'MainDialogFunction'.\n";
 		str += "     app.AppDialogFunction(MainDialogFunction);\n\n";
 		str += "The ofApp class then forwards calls from ofxWinDialog to this function.\n";
-		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+		SpoutMessageBox(NULL, str.c_str(), "ofxWinDialog", MB_OK | MB_USERICON | MB_TOPMOST);
 	}
 
 }
