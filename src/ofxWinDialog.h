@@ -7,12 +7,19 @@
 #include <string>
 #include <vector>
 #include <io.h>
+// For file read to a string
+#include <iostream>
+#include <fstream>
+#include <sstream>
+
 #include <commctrl.h> // For trackbar
 #include <Shlwapi.h> // For path functions
 #include <uxtheme.h> // For visual style themes
+#include <dwmapi.h> // For thick window frame if transparent
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "Shlwapi.Lib")
 #pragma comment(lib, "UxTheme.lib")
+#pragma comment(lib, "dwmapi.lib")
 
 // This adds the spoututils namespace so that SpoutUtils functions
 // are generally available and SpoutMessageBox can be used.
@@ -21,11 +28,17 @@
 #include "../libs/SpoutUtils.h"
 using namespace spoututils;
 
+//
 // Enable this define to use ofxWinDialog with
 // applications other than Openframeworks.
+// (See also the "standaloneUtils" define in SpoutUtils.h
+// to use SpoutUtils independently of Spout source files)
+//
 // #define standalone
 
+
 #ifdef standalone
+
 //
 // ofxWinDialog is designed to use a callback function within
 // an Openframeworks 'ofApp' class which is called when dialog
@@ -93,7 +106,7 @@ public:
 
 	// Constructor
 	// Optional class name for multiple dialogs and background colour in hex
-	ofxWinDialog(ofApp * app, HINSTANCE hInstance, HWND hWnd, std::string className="", int background=0);
+	ofxWinDialog(ofApp* app, HINSTANCE hInstance, HWND hWnd, std::string className="", int background=0);
 
     ~ofxWinDialog();
 
@@ -143,6 +156,9 @@ public:
     // Style can be BS_DEFPUSHBUTTON for the default button. Default is BS_PUSHBUTTON.
     void AddButton(std::string title, std::string text, int x, int y, int width, int height, DWORD dwStyle = 0);
 
+	// Change button size
+	void SetButton(std::string title, int width, int height);
+
 	// Change button text
 	// Style can be BS_TOP or BS_BOTTOM (default center)
 	void ButtonText(std::string title, std::string text, DWORD dwStyle = 0);
@@ -160,6 +176,9 @@ public:
 	// TextColor can also be used to change the button text
 	// Call before AddButton
 	void ButtonPicture(std::string path);
+
+	// Button picure from image pixels
+	void ButtonPicture(unsigned char * imageData, int width, int height, int nchannels, bool bInvert, bool bSwapRG);
 	
     //
     // Slider
@@ -181,6 +200,7 @@ public:
     // Slider mode
     // Inform ofApp when the mouse button is released (true)
     // or continously as the position changes (false)
+	// Call before adding slider control
     void SliderMode(bool bOnce);
         
     //
@@ -210,20 +230,24 @@ public:
     // A group box is not a control and has no title
     void AddGroup(std::string text, int x, int y, int width, int height);
 
-    //
-    // Static text
-    // Style can be :
-    //  SS_LEFT   - left aligned
-    //	SS_CENTER - centered
-    //	SS_RIGHT  - right aligned
-    //	WS_BORDER - outlined
-    //	SS_SUNKEN - sunken edge
-    // Default is left aligned (SS_LEFT)
-
 	// Static text that is not a updated
+	// Style can be :
+    //  SS_LEFT   - left aligned
+    //  SS_CENTER - centered
+    //  SS_RIGHT  - right aligned
+    //  WS_BORDER - outlined
+    //  SS_SUNKEN - sunken edge
+    //  Default is left aligned (SS_LEFT)
 	void AddText(std::string text, int x, int y, int width, int height, DWORD dwStyle = 0);
 
 	// Static text with an idependent title that can be updated with SetText
+	// Style can be :
+	//   SS_LEFT   - left aligned
+	//   SS_CENTER - centered
+	//   SS_RIGHT  - right aligned
+	//   WS_BORDER - outlined
+	//   SS_SUNKEN - sunken edge
+	//   Default is left aligned (SS_LEFT)
 	void AddText(std::string title, std::string text, int x, int y, int width, int height, DWORD dwStyle = 0);
 
 	// Static text color
@@ -269,6 +293,9 @@ public:
     int GetControlNumber();
 	// Get the dialog window handle
 	HWND GetDialogWindow();
+	// Get control handle
+	HWND GetControlWindow(std::string title);
+
 
 
     //
@@ -280,15 +307,22 @@ public:
     void SetSlider(std::string title, float value);
     void SetEdit(std::string title, std::string text);
 	void SetText(std::string title, std::string text);
-	// Set the current combo item
-    void SetComboItem(std::string title, int item);
+	void SetCombo(std::string title, std::vector<std::string> items, int index);
+    void SetComboItem(std::string title, int item); // Set the current combo item
 	void SetList(std::string title, std::vector<std::string> items, int index);
 	void SetListItem(std::string title, int item);
 	void SetSpin(std::string title, int value);
+	void SetButtonPicture(std::string title, std::string path);
+	void SetButtonPicture(std::string title, unsigned char* imageData, int width, int height, int nchannels, bool bInvert, bool bSwapRG);
+
 
 	// Enable/Disable a control
 	// (Except Hyperlink, Static and Group)
 	void EnableControl(std::string title, bool bEnabled);
+
+	// Set focus to a control
+	// bPress - send mouse down/up to activate
+	void SetControlFocus(std::string title, bool bPress = false);
 
 	// Reset controls with original values
     void Reset();
@@ -306,6 +340,9 @@ public:
     // The section name can be used to retrieve specific controls
     // ofApp calls GetControls to get the updated values
     bool Load(std::string filename="", std::string section="");
+
+	// Load file to a string
+	std::string LoadFile(std::string filename = "");
 
     // Set icon for the dialog window
     void SetIcon(HICON hIcon);
@@ -327,9 +364,21 @@ public:
 	HFONT GetFont();
 
 	// Dialog background colour
-	void BackGroundColor(int background);
+	void BackGroundColor(int hexcode);
 	void BackGroundColor(int red, int grn, int blu);
 	void BackGroundColor(COLORREF rgb);
+
+	// Transparent colour
+	void Transparent(int hexcode);
+
+	// Resizable border (WS_THICKFRAME)
+	void Resizeable();
+
+	// Minimize on open
+	void Minimize();
+
+	// Hide on open
+	void Hide();
 
     // Set dialog position and size
     //  o If x and y are both positive, that position is used
@@ -357,10 +406,16 @@ public:
 	//
 	// Utility
 	//
+	// Convert float to string with defined decimal places
     std::string float2string(float number, int places = 0);
+	// COLORREF to hex
 	int Rgb2Hex(COLORREF col);
+	// Red, green, blue values to hex
 	int Rgb2Hex(int r, int g, int b);
+	// Hex to red, green, blue values
 	COLORREF Hex2Rgb(int hex, int* red=nullptr, int* grn=nullptr, int* blu=nullptr);
+	// Load an icon from Shell32.dll (default) or imageres.dll
+	HICON LoadWindowsIcon(int iconIndex, bool bImageres = false);
 
 
     //
@@ -434,6 +489,17 @@ public:
     int dialogWidth = 0;
     int dialogHeight = 0;
 
+	// Transparent style
+	bool bTransparent = false;
+	int TransparentColor = 0; // Hex value
+
+	// Resizable border
+	bool bResizable = false;
+	// Minimize on open
+	bool bMinimize = false;
+	// Hide on open
+	bool bHide = false;
+
     // Variables for optional font
     std::string fontname;
 	LONG fontheight = 0;
@@ -444,5 +510,9 @@ public:
 	bool RegisterDialog();
 	bool bRegistered = false;
 
+	// Create button bitmap from image path
+	HBITMAP CreateButtonBitmap(std::string path);
+	// Create bitmap from pixel buffer
+	HBITMAP CreateBitmap(unsigned char* buffer, int width, int height, int nchannels, bool bInvert, bool bSwapRG);
 
  };

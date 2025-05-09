@@ -118,6 +118,40 @@
 //				   applications using the ofApp class
 //				 - Allow for empty file string in Load and Save
 //				   Change default Save bOverWrite flag to true
+//		06.03.25 - Add LoadWindowsIcon utility function
+//		24.03.25 - SetComboItem
+//				     Allow for user set of index for future combo reset
+//				     The dialog must then be re-created
+//				 - Add LoadFile function to load a file to a string
+//				 - CBN_SELCHANGE - check the ID of the combo box selected
+//		11.04.25 - Static flag "bOver" to restore border colour for an owner draw button
+//		13.04.25 - Add SetButtonPicture and private CreateButtonBitmap
+//				   Update ButtonPicture function
+//				   Add SetControlFocus to simulate control mouse press
+//				   Use controls[i].Val for slider one-click mode
+//				   Call SliderMode before adding slider control
+//		19.04.25 - Add WM_EXITSIZEMOVE dialog message
+//				   Add WM_SIZE invalidate to repaint background on re-size
+//				   Test THUMBTRACK to set a flag if the user is dragging
+//				   a trackbar (bDrag) and quit SetSlider if currently dragging
+//		23.04.25 - Add dwmapi for thick window frame if transparent
+//		28.04.25 - WM_CLOSE/WM_DESTROY - DestroyWindow after DialogFunction
+//				   Add IsWindow(m_hwnd) check in Close
+//				   Add "controls[i].Title == title" test in SetList
+//				   Add SetCombo function to replace combo box items
+//		01.05.25 - Add WM_ACTIVATE and notify app if the window is activated
+//				   Add overloads
+//				      ButtonPicture    - Button picture from image pixels
+//				      SetButtonPicture - Update button picture from image pixels
+//				   Add CreateButtonBitmap to create a bitmap from an image path
+//				   Add CreateBitmap to create a bitmap from image pixels
+//				   SetControlFocus - optional flag to send mouse press message
+//		03.05.25 - SetButton - change button bitmap if set by ButtonPicture
+//		05.05.25 - Add GetControlWindow to return control window handle
+//				   Remove hand cursor from picture button
+//				   Hover background slightly more blue
+//		06.05.25 - Add Minimize() and Hide() functions to open minimized or hidden
+//		08.05.25 - GetControlWindow - return default nullptr
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -139,6 +173,11 @@ static HHOOK hMsgHook = NULL;
 
 // Static window handle for GetKeyMsgProc
 static HWND hwndDialog = NULL;
+
+// Flag set to restore border colour for an owner draw button
+static bool bOver = false;
+// Flag to indicat the trackbar thumb is being dragged by the user
+static bool bDrag = false;
 
 ofxWinDialog::ofxWinDialog(ofApp* app, HINSTANCE hInstance,
 	HWND hWnd, std::string className, int background)
@@ -194,6 +233,75 @@ ofxWinDialog::~ofxWinDialog() {
     // Release message hook
     if (hMsgHook) UnhookWindowsHookEx(hMsgHook);
 }
+
+
+HBITMAP ofxWinDialog::CreateButtonBitmap(std::string path)
+{
+	int width, height, nchannels;
+
+	// Load image pixels
+	unsigned char * imageData = stbi_load(path.c_str(), &width, &height, &nchannels, 0);
+
+	// Create bitmap from pixel buffer
+	HBITMAP hBitMap = CreateBitmap(imageData, width, height, nchannels, true, false);
+	stbi_image_free(imageData);
+	return hBitMap;
+
+}
+
+// Create bitmap from pixel buffer
+HBITMAP ofxWinDialog::CreateBitmap(unsigned char *imageData, int width, int height, int nchannels, bool bInvert, bool bSwapRG)
+{
+	BITMAPINFO bmi;
+	ZeroMemory(&bmi, sizeof(bmi));
+	bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
+	bmi.bmiHeader.biWidth = width;
+	if(bInvert)
+		bmi.bmiHeader.biHeight = -height; // Negative to specify top-down bitmap
+	else
+		bmi.bmiHeader.biHeight = height;
+	bmi.bmiHeader.biPlanes = 1;
+	bmi.bmiHeader.biBitCount = 24; // 24 bits for RGB (no alpha)
+	bmi.bmiHeader.biCompression = BI_RGB;
+
+	// DIB section
+	void * bits = nullptr;
+	HBITMAP hBitmap = CreateDIBSection(
+		NULL, // default device context
+		&bmi, // BITMAPINFO structure
+		DIB_RGB_COLORS, // Colors are in RGB
+		&bits, // Pointer to store the bits
+		NULL, // No bitmap handle (using the direct memory buffer)
+		0 // Unused
+	);
+
+	if (!hBitmap)
+		return nullptr;
+
+	// Copy the raw image data to the bitmap's bits buffer
+	// Convert from RGB to the correct memory format for the DIB
+	unsigned char * dst = (unsigned char *)bits;
+	for (int y = 0; y < height; ++y) {
+		for (int x = 0; x < width; ++x) {
+			// Copy the RGB data (stb loads as RGB or RGBA)
+			int srcIndex = (y * width + x) * nchannels;
+			int dstIndex = (y * width + x) * 3; // 3 bytes per pixel (RGB)
+			if (bSwapRG) {
+				dst[dstIndex + 0] = imageData[srcIndex + 0]; // Blue
+				dst[dstIndex + 1] = imageData[srcIndex + 1]; // Green
+				dst[dstIndex + 2] = imageData[srcIndex + 2]; // Red
+			}
+			else {
+				dst[dstIndex + 0] = imageData[srcIndex + 2]; // Red
+				dst[dstIndex + 1] = imageData[srcIndex + 1]; // Green
+				dst[dstIndex + 2] = imageData[srcIndex + 0]; // Blue
+			}
+		}
+	}
+
+	return hBitmap;
+}
+
 
 bool ofxWinDialog::RegisterDialog()
 {
@@ -251,6 +359,29 @@ void ofxWinDialog::BackGroundColor(int red, int grn, int blu) {
 }
 void ofxWinDialog::BackGroundColor(COLORREF rgb) {
 	g_hBrush = CreateSolidBrush(rgb);
+}
+
+// Transparent colour
+void ofxWinDialog::Transparent(int hexcode) {
+
+	TransparentColor = hexcode;
+	bTransparent = true;
+
+}
+
+// Resizable border (WS_THICKFRAME)
+void ofxWinDialog::Resizeable() {
+	bResizable = true;
+}
+
+// Minimize on open
+void ofxWinDialog::Minimize() {
+	bMinimize = true;
+}
+
+// Hide on open
+void ofxWinDialog::Hide() {
+	bHide = true;
 }
 
 // Checkbox
@@ -336,6 +467,7 @@ void ofxWinDialog::AddSlider(std::string title,
     control.Max=max;
     control.SliderVal=value;
     control.Tick=tickinterval;
+	control.Val = (int)bOneClick;
     controls.push_back(control);
 }
 
@@ -367,6 +499,7 @@ void ofxWinDialog::AddEdit(std::string title, int x, int y, int width, int heigh
 // Style CBS_DROPDOWN allows user entry
 // Default is CBS_DROPDOWNLIST which prevents user entry
 void ofxWinDialog::AddCombo(std::string title, int x, int y, int width, int height, std::vector<std::string> items, int index, DWORD dwStyle) {
+
 	ctl control {};
 	control.Type = "Combo";
 	control.Title = title;
@@ -377,14 +510,11 @@ void ofxWinDialog::AddCombo(std::string title, int x, int y, int width, int heig
 	control.Y = y;
 	control.Width = width;
 	control.Height = height;
-
 	controls.push_back(control);
-
 }
 
 // For testing
 void ofxWinDialog::AddCombo(std::string title, int x, int y, int width, int height) {
-
 	std::vector<std::string> items;
 	items.push_back("Item 1");
 	items.push_back("Item 2");
@@ -483,7 +613,28 @@ void ofxWinDialog::AddButton(std::string title, std::string text, int x, int y, 
     controls.push_back(control);
 }
 
-// Change button text
+// Change button size
+void ofxWinDialog::SetButton(std::string title, int width, int height) {
+	for (size_t i = 0; i < controls.size(); i++) {
+		// Update the button width and height
+		if (controls[i].Type == "Button") {
+			if (controls[i].Title == title) {
+				if(width  > 0) controls[i].Width  = width;
+				if(height > 0) controls[i].Height = height;
+				SetWindowPos(controls[i].hwndControl, HWND_TOP,
+					controls[i].X, controls[i].Y, controls[i].Width, controls[i].Height, SWP_NOMOVE);
+				// Change button bitmap if set by ButtonPicture
+				if (g_hBitmap != nullptr) {
+					controls[i].hwndType = (HWND)g_hBitmap;
+					g_hBitmap = nullptr;
+				}
+				// Update the control
+				RedrawWindow(controls[i].hwndControl, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASENOW | RDW_INTERNALPAINT);
+			}
+		}
+	}
+}
+	// Change button text
 // Style can be BS_TOP or BS_BOTTOM (default center)
 void ofxWinDialog::ButtonText(std::string title, std::string text, DWORD dwStyle) {
 	for (size_t i = 0; i < controls.size(); i++) {
@@ -539,52 +690,15 @@ void ofxWinDialog::ButtonColor(COLORREF rgb) {
 void ofxWinDialog::ButtonPicture(std::string path)
 {
 	if (_access(path.c_str(), 0) != -1) {
-
-		int width, height, nchannels;
-		unsigned char* imageData = stbi_load(path.c_str(), &width, &height, &nchannels, 0);
-
-		BITMAPINFO bmi;
-		ZeroMemory(&bmi, sizeof(bmi));
-		bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
-		bmi.bmiHeader.biWidth = width;
-		bmi.bmiHeader.biHeight = -height; // Negative to specify top-down bitmap
-		bmi.bmiHeader.biPlanes = 1;
-		bmi.bmiHeader.biBitCount = 24; // 24 bits for RGB (no alpha)
-		bmi.bmiHeader.biCompression = BI_RGB;
-
-		// DIB section
-		void* bits = nullptr;
-		g_hBitmap = CreateDIBSection(
-			NULL, // default device context
-			&bmi, // BITMAPINFO structure
-			DIB_RGB_COLORS, // Colors are in RGB
-			&bits, // Pointer to store the bits
-			NULL, // No bitmap handle (using the direct memory buffer)
-			0 // Unused
-		);
-
-		if (!g_hBitmap)
-			return;
-
-		// Copy the raw image data to the bitmap's bits buffer
-		// Convert from RGB to the correct memory format for the DIB
-		unsigned char * dst = (unsigned char *)bits;
-		for (int y = 0; y < height; ++y) {
-			for (int x = 0; x < width; ++x) {
-				// Copy the RGB data (stb loads as RGB or RGBA)
-				int srcIndex = (y * width + x) * nchannels;
-				int dstIndex = (y * width + x)*3; // 3 bytes per pixel (RGB)
-				dst[dstIndex] = imageData[srcIndex + 2]; // Red
-				dst[dstIndex + 1] = imageData[srcIndex + 1]; // Green
-				dst[dstIndex + 2] = imageData[srcIndex]; // Blue
-			}
-		}
-		stbi_image_free(imageData);
+		// Set the global bitmap handle for AddButton and SetButton
+		g_hBitmap = CreateButtonBitmap(path);
 	}
-	else {
-		g_hBitmap = nullptr;
-	}
+}
 
+// Button picture from image pixels
+void ofxWinDialog::ButtonPicture(unsigned char *imageData, int width, int height, int nchannels, bool bInvert, bool bSwapRG)
+{
+	g_hBitmap = CreateBitmap(imageData, width, height, nchannels, bInvert, bSwapRG);
 }
 
 
@@ -858,12 +972,32 @@ void ofxWinDialog::EnableControl(std::string title, bool bEnabled) {
 	}
 }
 
+void ofxWinDialog::SetControlFocus(std::string title, bool bPress)
+{
+	for (size_t i = 0; i < controls.size(); i++) {
+		if (controls[i].Title == title) {
+			HWND hwnd = controls[i].hwndControl;
+			SetFocus(hwnd);
+			if (bPress) {
+				// Send mouse down/up
+				PostMessage(hwnd, WM_LBUTTONDOWN, 0, 0);
+				PostMessage(hwnd, WM_LBUTTONUP, 0, 0);
+			}
+		}
+	}
+}
+
 // Set slider value
 void ofxWinDialog::SetSlider(std::string title, float value)
 {
     for (size_t i=0; i<controls.size(); i++) {
         if (controls[i].Type == "Slider") {
             if (controls[i].Title == title) {
+
+				// Quit if the slider is currently being moved
+				if (bDrag)
+					break;
+
                 // Update the Slider value
                 controls[i].SliderVal = value;
                 if ((controls[i].Max - controls[i].Min) > 1000.0)
@@ -883,6 +1017,7 @@ void ofxWinDialog::SetSlider(std::string title, float value)
                         sprintf_s(tmp, 8, "%.2f", controls[i].SliderVal);
                     SetWindowTextA(controls[i].hwndSliderVal, (LPCSTR)tmp);
                 }
+				break;
             }
         }
     }
@@ -912,15 +1047,41 @@ void ofxWinDialog::SetText(std::string title, std::string text) {
 	}
 }
 
+// Set the combo items of an existing combo box
+void ofxWinDialog::SetCombo(std::string title, std::vector<std::string> items, int index)
+{
+	for (size_t i = 0; i < controls.size(); i++) {
+		if (controls[i].Type == "Combo" && controls[i].Title == title) {
+			HWND hwndList = controls[i].hwndControl;
+			SendMessageA(hwndList, CB_RESETCONTENT, 0, 0L);
+			if (items.size() > 0) {
+				for (size_t i = 0; i < items.size(); i++) {
+					int pos = (int)SendMessageA(hwndList, CB_ADDSTRING, 0, (LPARAM)items[i].c_str());
+					SendMessageA(hwndList, CB_SETITEMDATA, pos, (LPARAM)i);
+				}
+				// Reset the list items
+				controls[i].Items.clear();
+				controls[i].Items = items;
+				// Highlight the current item
+				SendMessageA(hwndList, CB_SETCURSEL, (WPARAM)index, 0L);
+			}
+		}
+	}
+}
+
+
 // Set the current combo item
 void ofxWinDialog::SetComboItem(std::string title, int item)
 {
 	for (size_t i = 0; i < controls.size(); i++) {
 		if (controls[i].Type == "Combo") {
-			if (controls[i].Title == title && item < (int)controls[i].Items.size()) {
-				// Make the item current
+			// Allow for user set of index for future combo reset
+			// The dialog must then be re-created
+			if (controls[i].Title == title) {
+				// Make the item current if less than the current list size
 				controls[i].Index = item;
-				SendMessage(controls[i].hwndControl, (UINT)CB_SETCURSEL, (WPARAM)item, 0L);
+				if (item < (int)controls[i].Items.size())
+					SendMessage(controls[i].hwndControl, (UINT)CB_SETCURSEL, (WPARAM)item, 0L);
 			}
 		}
 	}
@@ -931,7 +1092,7 @@ void ofxWinDialog::SetList(std::string title, std::vector<std::string> items, in
 {
 	// Addlist
 	for (size_t i = 0; i < controls.size(); i++) {
-		if (controls[i].Type == "List") {
+		if (controls[i].Type == "List" && controls[i].Title == title) {
 			HWND hwndList = controls[i].hwndControl;
 			SendMessageA(hwndList, LB_RESETCONTENT, 0, 0L);
 			if (items.size() > 0) {
@@ -980,6 +1141,71 @@ void ofxWinDialog::SetSpin(std::string title, int value) {
 	}
 }
 
+// Change button picture to image path
+void ofxWinDialog::SetButtonPicture(std::string title, std::string path) {
+
+	if (_access(path.c_str(), 0) == -1)
+		return;
+
+	// Find the button
+	int index = -1;
+	for (size_t i = 0; i < controls.size(); i++) {
+		if (controls[i].Type == "Button") {
+			if (controls[i].Title == title) {
+				// Must be owner draw with a bitmap
+				if (controls[i].hwndType && controls[i].Style == BS_OWNERDRAW) {
+					index = (int)i;
+					break;
+				}
+			}
+		}
+	}
+
+	// Button not found
+	if (index < 0)
+		return;
+
+	// Bitmap for the button
+	HBITMAP hBitmap = CreateButtonBitmap(path);
+	if (!hBitmap)
+		return;
+
+	// Set the new button control handle for draw
+	controls[index].hwndType = (HWND)hBitmap;
+
+}
+
+// Change button picture from image pixels
+void ofxWinDialog::SetButtonPicture(std::string title, unsigned char *imageData, int width, int height, int nchannels, bool bInvert, bool bSwapRG)
+{
+	// Find the button
+	int index = -1;
+	for (size_t i = 0; i < controls.size(); i++) {
+		if (controls[i].Type == "Button") {
+			if (controls[i].Title == title) {
+				// Must be owner draw with a bitmap
+				if (controls[i].hwndType && controls[i].Style == BS_OWNERDRAW) {
+					index = (int)i;
+					break;
+				}
+			}
+		}
+	}
+
+	// Button not found
+	if (index < 0)
+		return;
+
+	// Bitmap for the button
+	HBITMAP hBitmap = CreateBitmap(imageData, width, height, nchannels, bInvert, bSwapRG);
+	if (!hBitmap)
+		return;
+
+	// Set the new button control handle for draw
+	controls[index].hwndType = (HWND)hBitmap;
+
+}
+
 
 // Get current controls
 // This function is called from ofApp to return control values
@@ -994,8 +1220,9 @@ void ofxWinDialog::GetControls()
             && controls[i].Type != "CANCEL") {
 			if (controls[i].Type == "Combo" || controls[i].Type == "List") {
 				// Test for empty items in the combo or list control
-				if(!controls[i].Items.empty())
+				if (!controls[i].Items.empty()) {
 					DialogFunction(controls[i].Title, controls[i].Items[controls[i].Index], controls[i].Index);
+				}
             }
             else if (controls[i].Type == "Slider") {
                 DialogFunction(controls[i].Title, "", (int)(controls[i].SliderVal*100.0f));
@@ -1031,14 +1258,26 @@ HWND ofxWinDialog::GetDialogWindow() {
 	return m_hDialog;
 }
 
+// Get control handle
+HWND ofxWinDialog::GetControlWindow(std::string title) {
+	for (size_t i = 0; i < controls.size(); i++) {
+		if (controls[i].Title == title) {
+			return controls[i].hwndControl;
+		}
+	}
+	return nullptr;
+}
+
+
 // Reset controls with orignal values
 // ofApp calls GetControls to get the updated values
 // and closes the dialog.
 void ofxWinDialog::Reset()
 {
     // Reset controls
-    if(!newcontrols.empty())
-        controls = newcontrols;
+	if (!newcontrols.empty()) {
+		controls = newcontrols;
+	}
     Refresh();
 }
 
@@ -1272,10 +1511,9 @@ bool ofxWinDialog::Load(std::string filename, std::string section)
         return false;
     }
 
-    // Set newcontrols first if Load is before Open
-    // hwnd and ID are not set
-    if (newcontrols.empty() && !controls.empty())
-        newcontrols = controls;
+	// Set newcontrols first if Load is before Open
+    // hwnd and ID are not yet set
+	newcontrols = controls;
 
     // Load control values
     // Only those saved in the ini file are changed
@@ -1335,6 +1573,66 @@ bool ofxWinDialog::Load(std::string filename, std::string section)
 
 }
 
+// Load initialization file to a string
+std::string ofxWinDialog::LoadFile(std::string filename)
+{
+	char tmp[MAX_PATH]{};
+	std::string inipath = "";
+
+	// If no filename, create ini file from exe path
+	if (filename.empty()) {
+		inipath = GetExePath(true);
+		// Strip ".exe" and replace with ".ini"
+		inipath = inipath.substr(0, inipath.rfind(".")) + ".ini";
+	}
+	else {
+		// Check for full path
+		if (filename.find('/') != std::string::npos || filename.find('\\') != std::string::npos) {
+			inipath = filename;
+		}
+		else {
+			// filename only - add full path - (bin\data or executable directory)
+			std::string path = GetExePath();
+			// First try the bin\data folder
+			inipath = path;
+			inipath += "\\data\\";
+			// Does the folder exist ?
+			if (_access(inipath.c_str(), 0) != -1) {
+				// Openframeworks application
+				inipath += filename;
+			} else {
+				// Executable folder
+				inipath = path;
+				inipath += "\\";
+				inipath += filename;
+			}
+		}
+	}
+
+	// Check that the file exists in case an extension was added
+	if (_access(inipath.c_str(), 0) == -1) {
+		printf("ofxWinDialog::LoadFile - file \"%s\" not found.", inipath.c_str());
+		return "";
+	}
+
+	// Open the file for reading
+	std::ifstream file(inipath.c_str());
+	if (!file) {
+		printf("ofxWinDialog::LoadFile - Error opening file\n");
+		return "";
+	}
+
+	// stringstream buffer
+	std::stringstream buffer;
+
+	// Read the entire file into the stringstream
+	buffer << file.rdbuf();
+
+	// Return the contents as a string
+	return buffer.str();
+
+}
+
 // Set dialog window icon
 void ofxWinDialog::SetIcon(HICON hIcon)
 {
@@ -1360,9 +1658,9 @@ void ofxWinDialog::SetPosition(int x, int y, int width, int height)
 // Dialog position and size must have been set by SetPosition
 HWND ofxWinDialog::Open(std::string title)
 {
-    // Safety
-    if (dialogWidth == 0 || dialogHeight == 0)
-        return NULL;
+	// Safety
+	if (dialogWidth == 0 || dialogHeight == 0)
+		return NULL;
 
 	// Register the dialog window if not already
 	if (!bRegistered) {
@@ -1370,37 +1668,44 @@ HWND ofxWinDialog::Open(std::string title)
 			return NULL;
 	}
 
-    // Parent window size
-    RECT rect{};
-    GetWindowRect(m_hwnd, &rect);
-    int rwidth  = rect.right - rect.left;
-    int rheight = rect.bottom - rect.top;
+	// Dialog position
+	int xpos = dialogX;
+	int ypos = dialogY;
 
-    int xpos = dialogX;
-    int ypos = dialogY;
-    //  o If x and y are both positive, that position is used
-    //	o If x and y are both zero, centre on the host window
-    //  o if y is zero, offset from the centre by the x amount
-    //  o If x and y are both negative, centre on the desktop
-    //  o if x is CW_USEDEFAULT the system selects the default x and ignores y 
-    if (dialogX == 0 && dialogY == 0) {
-        // Centre on the host window
-        xpos = rect.left + rwidth/2  - dialogWidth/2;
-        ypos = rect.top  + rheight/2 - dialogHeight/2;
-    }
-    else if (dialogX < 0 && dialogY < 0) {
-        xpos = (GetSystemMetrics(SM_CXSCREEN)-dialogWidth)/2;
-        ypos = (GetSystemMetrics(SM_CYSCREEN)-dialogHeight)/2;
-    }
-    else if (dialogY == 0 && dialogX != CW_USEDEFAULT) {
-        // If y is zero, offset left or right 
-        // from the left side of the host window
-        ypos = rect.top  + rheight/2 - dialogHeight/2;
-        xpos = rect.left + rwidth/2  - dialogWidth/2;
-        ypos = rect.top  + rheight/2 - dialogHeight/2;
-        xpos = rect.left + dialogX;
-        if (xpos < 0) xpos = 0;
-    }
+	//  o If x and y are both negative, centre on the desktop
+	//  o If x and y are both positive, that position is used
+	if (dialogX < 0 && dialogY < 0) {
+		xpos = (GetSystemMetrics(SM_CXSCREEN) - dialogWidth) / 2;
+		ypos = (GetSystemMetrics(SM_CYSCREEN) - dialogHeight) / 2;
+	}
+
+	// Relative to parent window
+	if (m_hwnd) {
+
+		// Parent window size (can be zero)
+		RECT rect {};
+		GetWindowRect(m_hwnd, &rect);
+		int rwidth = rect.right - rect.left;
+		int rheight = rect.bottom - rect.top;
+
+		//	o If x and y are both zero, centre on the host window
+		if (dialogX == 0 && dialogY == 0) {
+			// Centre on the host window
+			xpos = rect.left + rwidth / 2 - dialogWidth / 2;
+			ypos = rect.top + rheight / 2 - dialogHeight / 2;
+		}
+		//  o if y is zero, offset from the centre by the x amount
+		else if (dialogY == 0 && dialogX != CW_USEDEFAULT) {
+			// If y is zero, offset left or right
+			// from the left side of the host window
+			ypos = rect.top + rheight / 2 - dialogHeight / 2;
+			xpos = rect.left + rwidth / 2 - dialogWidth / 2;
+			ypos = rect.top + rheight / 2 - dialogHeight / 2;
+			xpos = rect.left + dialogX;
+			if (xpos < 0) xpos = 0;
+		}
+		//  o if x is CW_USEDEFAULT the system selects the default x and ignores y
+	}
 
 	#ifdef UNICODE
 	// Title is wide chars
@@ -1414,8 +1719,12 @@ HWND ofxWinDialog::Open(std::string title)
     // No minimize, maximize or menu
     // WS_CAPTION | WS_SYSMENU gives a close button and icon
     // No WS_VISIBLE - ShowWindow when all controls have been created
+	DWORD dwStyle = WS_CAPTION | WS_OVERLAPPED | WS_SYSMENU;
+	if (bResizable)
+		dwStyle |= WS_THICKFRAME;
+
 	HWND hwnd = CreateWindow(m_ClassName, titlechars,
-        WS_CAPTION | WS_OVERLAPPED | WS_SYSMENU,
+        dwStyle,
         xpos, ypos, dialogWidth, dialogHeight,
         m_hwnd,      // Parent window
         NULL,        // No menu
@@ -1428,6 +1737,24 @@ HWND ofxWinDialog::Open(std::string title)
         MessageBoxA(NULL, str.c_str(), "Error", MB_OK | MB_ICONERROR);
         return 0;
     }
+
+	// Set transparency
+	if (bTransparent) {
+		//
+		// Set layered style for transparency
+		// Used to create a transparent window
+		// https://stackoverflow.com/questions/3970066/creating-a-transparent-window-in-c-win32
+		//
+		LONG_PTR dwStyle = GetWindowLongPtrA(hwnd, GWL_EXSTYLE);
+		SetWindowLongPtrA(hwnd, GWL_EXSTYLE, dwStyle | WS_EX_LAYERED);
+		// Make pixels transparent
+		SetLayeredWindowAttributes(hwnd, Hex2Rgb(TransparentColor), 0, LWA_COLORKEY);
+
+		// This creates a window with a thick blue border
+		DWORD policy = DWMNCRP_DISABLED;
+		DwmSetWindowAttribute(hwnd, DWMWA_NCRENDERING_POLICY, &policy, sizeof(policy));
+
+	}
 
      // Store the instance pointer in the window's user data
     SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)this);
@@ -1543,14 +1870,16 @@ HWND ofxWinDialog::Open(std::string title)
                 ID++;
 
                 // Set slider range and initial position
-                if ((controls[i].Max - controls[i].Min) > 1000.0) {
-                    SendMessage(hwndc, TBM_SETRANGE, TRUE, MAKELONG((int)(controls[i].Min), (int)(controls[i].Max)));
+                if ((controls[i].Max-controls[i].Min) > 1000.0) {
+					SendMessage(hwndc, TBM_SETRANGE, TRUE, MAKELONG((int)(controls[i].Min), (int)(controls[i].Max)));
                     SendMessage(hwndc, TBM_SETPOS, TRUE, (int)(controls[i].SliderVal));
                 }
                 else {
                     SendMessage(hwndc, TBM_SETRANGE, TRUE, MAKELONG((int)(controls[i].Min*100.0f), (int)(controls[i].Max*100.0f)));
                     SendMessage(hwndc, TBM_SETPOS, TRUE, (int)(controls[i].SliderVal*100.0f));
-                }
+			    }
+				float pagesize = (controls[i].Max - controls[i].Min)/20.0f; // 5% range
+				SendMessage(hwndc, TBM_SETPAGESIZE, 0, (int)(pagesize*100.0f));
 
                 // Set tick interval
                 if (controls[i].Tick > 0.0f) {
@@ -1705,6 +2034,7 @@ HWND ofxWinDialog::Open(std::string title)
                         SendMessageW(hwndc, (UINT)CB_ADDSTRING, (WPARAM)0, (LPARAM)itemstr);
                     }
                 }
+
                 // Display an initial item in the selection field
                 SendMessage(hwndc, CB_SETCURSEL, (WPARAM)controls[i].Index, (LPARAM)0);
 
@@ -1898,7 +2228,14 @@ HWND ofxWinDialog::Open(std::string title)
          }
     }
 
-    ShowWindow(hwnd, SW_SHOWNORMAL);
+	// Open minimized or hidden if the option is set
+	if(bMinimize)
+		ShowWindow(hwnd, SW_MINIMIZE);
+	else if (bHide)
+		ShowWindow(hwnd, SW_HIDE);
+	else
+		ShowWindow(hwnd, SW_SHOWNORMAL);
+
     UpdateWindow(hwnd);
 
 	SetFocus(hwnd);
@@ -1912,7 +2249,9 @@ void ofxWinDialog::Close()
 {
     if (m_hDialog && IsWindow(m_hDialog)) {
         // Bring the app window to the top
-        SetWindowPos(m_hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+		if (m_hwnd && IsWindow(m_hwnd)) {
+			SetWindowPos(m_hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+		}
         PostMessage(m_hDialog, WM_CLOSE, 0, 0);
     }
 }
@@ -1979,6 +2318,8 @@ void ofxWinDialog::DisableTheme(std::string type, std::string title)
 //
 // Utility
 //
+
+// Convert float to string with defined decimal places
 std::string ofxWinDialog::float2string(float number, int places)
 {
     std::string str = std::to_string(number);
@@ -1989,15 +2330,18 @@ std::string ofxWinDialog::float2string(float number, int places)
     return str;
 }
 
+// COLORREF to hex
 int ofxWinDialog::Rgb2Hex(COLORREF col) {
 	return (GetRValue(col) << 16) | (GetGValue(col) << 8) | GetBValue(col);
 }
 
+// Red, green, blue values to hex
 int ofxWinDialog::Rgb2Hex(int r, int g, int b)
 {
 	return (r << 16) | (g << 8) | b;
 }
 
+// Hex to red, green, blue values
 COLORREF ofxWinDialog::Hex2Rgb(int hex, int* red, int* grn, int* blu)
 {
 	int r = (hex >> 16) & 0xFF;
@@ -2010,6 +2354,28 @@ COLORREF ofxWinDialog::Hex2Rgb(int hex, int* red, int* grn, int* blu)
 	}
 	return RGB(r, g, b);
 }
+
+// Load an icon from Shell32.dll (default) or imageres.dll
+//   https://renenyffenegger.ch/development/Windows/PowerShell/examples/WinAPI/ExtractIconEx/shell32.html
+//   https://renenyffenegger.ch/development/Windows/PowerShell/examples/WinAPI/ExtractIconEx/imageres.html
+HICON ofxWinDialog::LoadWindowsIcon(int iconIndex, bool bImageres)
+{
+	char path[MAX_PATH] {};
+	UINT length = GetSystemDirectoryA(path, MAX_PATH);
+	if (length > 0 && length < MAX_PATH) {
+		std::string dllPath;
+		if (bImageres)
+			dllPath = std::string(path) + "\\imageres.dll";
+		else
+			dllPath = std::string(path) + "\\Shell32.dll";
+		// Does the file exist?
+		if (_access(dllPath.c_str(), 0) != -1) {
+			return ExtractIconA(nullptr, dllPath.c_str(), iconIndex);
+		}
+	}
+	return nullptr;
+}
+
 
 //
 // Windows message callback function
@@ -2046,6 +2412,22 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
     switch (msg) {
 
+		case WM_ACTIVATE:
+			// Notify app if the window is activated
+			DialogFunction("WM_ACTIVATE", "", PtrToUint(m_hDialog));
+			break;
+
+		case WM_EXITSIZEMOVE:
+			// Notify app if the window is moved
+			DialogFunction("WM_EXITSIZEMOVE", "", PtrToUint(m_hDialog));
+			break;
+
+		case WM_SIZE:
+			// Invalidate the whole window on resize
+			// to prevent repeat draw of border
+			InvalidateRect(hwnd, NULL, TRUE);
+			return 0;
+
 		case WM_PAINT:
 		{
 			PAINTSTRUCT ps;
@@ -2056,6 +2438,7 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 			// Set the Group box caption colour here
 			// because it is not static text
 			for (size_t i = 0; i < controls.size(); i++) {
+
 				if (controls[i].Type == "Group") {
 
 					// Text colour for the group box caption
@@ -2283,33 +2666,43 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 				if (controls[i].Type == "Button"
 					&& controls[i].Index != 1 // not a hyperlink
 					&& (controls[i].hwndType || controls[i].Val > 1) ) { // Owner draw button
-					// Prepare for frame draw
-					RECT rect;
-					GetClientRect(controls[i].hwndControl, &rect);
-					HDC hdc = GetDC(controls[i].hwndControl);
+
 					// Cursor position
-					POINT pt;
+					POINT pt{};
 					GetCursorPos(&pt);
+
 					// If the mouse is over the button, set a hand cursor
-					if (WindowFromPoint(pt) == controls[i].hwndControl) {
-						cursorHand = LoadCursor(NULL, IDC_HAND);
-						SetCursor(cursorHand);
+					if (!bOver && WindowFromPoint(pt) == controls[i].hwndControl) {
 						// Blue border when mouse is over the button
-						HBRUSH hBrush = CreateSolidBrush(RGB(0, 120, 215));
+						HBRUSH hBrush = CreateSolidBrush(RGB(0, 100, 215));
+						RECT rect;
+						GetClientRect(controls[i].hwndControl, &rect);
+						HDC hdc = GetDC(controls[i].hwndControl);
 						FrameRect(hdc, &rect, hBrush);
 						DeleteObject(hBrush);
+						DeleteObject(hdc);
+						// Set a flag to restore to grey when not over the button
+						bOver = true;
 						return TRUE;
 					}
 					else {
-						// Current border colour
-						COLORREF bc = GetPixel(hdc, 0, 0);
-						// If border colour is changed to blue, restore 
-						// to grey as when not pressed in WM_DRAWITEM
-						if (bc == RGB(0, 120, 215)) {
-							HBRUSH hBrush = CreateSolidBrush(RGB(169, 169, 169));
-							FrameRect(hdc, &rect, hBrush);
-							DeleteObject(hBrush);
+						// If not over the button, restore the border colour
+						if (!bOver) {
+							HDC hdc = GetDC(controls[i].hwndControl);
+							// Current border colour
+							COLORREF bc = GetPixel(hdc, 0, 0);
+							// If border colour has been changed to blue,
+							// restore to grey when not pressed (as in WM_DRAWITEM)
+							if (bc == RGB(0, 100, 215)) {
+								HBRUSH hBrush = CreateSolidBrush(RGB(169, 169, 169));
+								RECT rect{};
+								GetClientRect(controls[i].hwndControl, &rect);
+								FrameRect(hdc, &rect, hBrush);
+								DeleteObject(hBrush);
+							}
+							DeleteObject(hdc);
 						}
+						bOver = false;
 					}
 				}
 			}
@@ -2372,14 +2765,16 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                      // Check all combo and list controls
                      for (size_t i=0; i<controls.size(); i++) {
                          if (controls[i].Type == "Combo") {
-                             // Get currently selected combo index
-                             // Allow for error if the user edits the list item
-                             int index = (int)SendMessage(controls[i].hwndControl, (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
-							 if (index != CB_ERR) {
-								 // Inform ofApp if no error
-								 DialogFunction(controls[i].Title, controls[i].Items[index], index);
-								 // Reset the control index
-								 controls[i].Index = index;
+							 if (LOWORD(wParam) == controls[i].ID) { // ID of the combo box selected
+								 // Get currently selected combo index
+								 // Allow for error if the user edits the list item
+								 int index = (int)SendMessage(controls[i].hwndControl, (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
+								 if (index != CB_ERR) {
+									 // Inform ofApp if no error
+									 DialogFunction(controls[i].Title, controls[i].Items[index], index);
+									 // Reset the control index
+									 controls[i].Index = index;
+								 }
 							 }
                          }
 
@@ -2460,7 +2855,6 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                          if (controls[i].Type == "Button") {
                              if (LOWORD(wParam) == controls[i].ID) { // ID of the button selected
                                  // Inform ofApp
-								 // LJ DEBUG
                                  DialogFunction(controls[i].Title, " ", 1);
                              }
                          } // end Push button
@@ -2481,12 +2875,18 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                     if (controls[i].Type == "Slider") {
                         if ((HWND)lParam == controls[i].hwndControl) {
 
+							// Set a flag to prevent SetSilder from updating
+							// the position while it is currently being moved
+							bDrag = false;
+							if (LOWORD(wParam) == SB_THUMBTRACK)
+								bDrag = true;
+
                             // Current position of the slider
                             int pos = (int)SendMessage(controls[i].hwndControl, TBM_GETPOS, 0, 0);
 
                             // Check for direction keys, left/right, up/down
                             // Default trackbar style is Down=Right and Up=Left (CommCtrl.h)
-                            float range = (controls[i].Max - controls[i].Min);
+							float range = (controls[i].Max - controls[i].Min);
                             if (wParam == SB_LINELEFT) { // Left key
                                 // Moves left one unit
                                 // Move 100 units for trackbars with range > 1000, 
@@ -2532,7 +2932,7 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                             }
 
                             // If not one-click mode Inform ofApp of the slider position change
-                            if (!bOneClick) {
+							if(controls[i].Val == 0) {
                                 DialogFunction(controls[i].Title, "", (int)(controls[i].SliderVal*100.0f));
                             }
                             else if (wParam == SB_ENDSCROLL) { // Mouse release or key up
@@ -2546,8 +2946,8 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
         case WM_CLOSE:
         case WM_DESTROY:
-            DestroyWindow(hwnd);
 			DialogFunction("WM_DESTROY", "", PtrToUint(m_hDialog));
+            DestroyWindow(hwnd);
             m_hDialog = nullptr;
             break;
     }
