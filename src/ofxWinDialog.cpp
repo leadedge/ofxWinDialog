@@ -152,6 +152,18 @@
 //				   Hover background slightly more blue
 //		06.05.25 - Add Minimize() and Hide() functions to open minimized or hidden
 //		08.05.25 - GetControlWindow - return default nullptr
+//		14.05.25 - Add - ButtonPicture(HBITMAP hBitmap)
+//				   Change CreateBitmap to CreateButtonBitmap
+//		22.12.25 - Remove local SpoutUtils from libs
+//				   Add GetExePath and GetPath
+//		27.12.25 - change "standalone" define to "standaloneWinDialog"
+//		11.06.26 - If dialog y is zero, offset from the left by the x amount
+//				   and position at the top of the window or offset
+//				   from the centre if the dialog height is greater
+//		16.07.26 - If dialog y is zero, add "if (ypos < 0) ypos = 0;"
+//		21.07.26 - Prevent the bottom of the dialog going past work area height
+//		18.08.26 - Remove using spoututils namespace from header
+//				   Retain manifest for comctl32.dll version 6
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -186,6 +198,15 @@ ofxWinDialog::ofxWinDialog(ofApp* app, HINSTANCE hInstance,
 	m_hwnd = hWnd;
 	pApp = app; // The ofApp class pointer
 
+	SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+
+	// TODO
+	// Make sure the program is per-monitor DPI aware
+	// Get the window scaling factor (100/125/150% etc)
+	// 96 DPI = 100%, 120 DPI = 125%, 144 DPI = 150% etc
+	// g_Scale = (double)GetDpiForWindow(hWnd)/96.0;
+	// printf("ofxWinDialog - scale = %.2f\n", g_Scale);
+
 	// Default background brush is CTLCOLOR_DLG (light grey)
 	g_hBrush = CreateSolidBrush(GetSysColor(CTLCOLOR_DLG));
 
@@ -193,7 +214,7 @@ ofxWinDialog::ofxWinDialog(ofApp* app, HINSTANCE hInstance,
 	// ofApp callback function for return of control values/
 	// Set by 'AppDialogFunction'.
 	//
-	#ifdef standalone
+	#ifdef standaloneWinDialog
 	// Callback function of the simulated 'ofApp' class which
 	// will then forward to the application callback function.
 	pAppDialogFunction = &ofApp::ofxDialogFunction;
@@ -242,17 +263,18 @@ HBITMAP ofxWinDialog::CreateButtonBitmap(std::string path)
 	// Load image pixels
 	unsigned char * imageData = stbi_load(path.c_str(), &width, &height, &nchannels, 0);
 
-	// Create bitmap from pixel buffer
-	HBITMAP hBitMap = CreateBitmap(imageData, width, height, nchannels, true, false);
+	// Create bitmap from the pixel buffer
+	HBITMAP hBitMap = CreateButtonBitmap(imageData, width, height, nchannels, true, false);
 	stbi_image_free(imageData);
 	return hBitMap;
 
 }
 
 // Create bitmap from pixel buffer
-HBITMAP ofxWinDialog::CreateBitmap(unsigned char *imageData, int width, int height, int nchannels, bool bInvert, bool bSwapRG)
+// TODO check requirement for width multiple of 2 or 4
+HBITMAP ofxWinDialog::CreateButtonBitmap(unsigned char *imageData, int width, int height, int nchannels, bool bInvert, bool bSwapRG)
 {
-	BITMAPINFO bmi;
+	BITMAPINFO bmi{};
 	ZeroMemory(&bmi, sizeof(bmi));
 	bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
 	bmi.bmiHeader.biWidth = width;
@@ -275,12 +297,14 @@ HBITMAP ofxWinDialog::CreateBitmap(unsigned char *imageData, int width, int heig
 		0 // Unused
 	);
 
-	if (!hBitmap)
+	if (!hBitmap) {
+		printf("ofxWinDialog::CreateButtonBitmap - could not create bitmap\n");
 		return nullptr;
+	}
 
 	// Copy the raw image data to the bitmap's bits buffer
 	// Convert from RGB to the correct memory format for the DIB
-	unsigned char * dst = (unsigned char *)bits;
+	unsigned char* dst = (unsigned char *)bits;
 	for (int y = 0; y < height; ++y) {
 		for (int x = 0; x < width; ++x) {
 			// Copy the RGB data (stb loads as RGB or RGBA)
@@ -298,10 +322,35 @@ HBITMAP ofxWinDialog::CreateBitmap(unsigned char *imageData, int width, int heig
 			}
 		}
 	}
-
 	return hBitmap;
+
 }
 
+// Get executable or dll path
+//   true  - full path with executable name
+//   false - path without executable name (default)
+std::string ofxWinDialog::GetExePath(bool bFull) {
+	char path[MAX_PATH]{};
+	// exe only
+	GetModuleFileNameA(NULL, path, MAX_PATH);
+	std::string exepath = path;
+	if (!bFull)
+		return GetPath(exepath); // Remove name and get path
+	else
+		return exepath; // Return the full path
+}
+
+// Remove file name and return the path
+std::string ofxWinDialog::GetPath(std::string fullpath) {
+	std::string path;
+	size_t pos = fullpath.rfind("\\");
+	if (pos == std::string::npos)
+		pos = fullpath.rfind("/");
+	if (pos != std::string::npos) {
+		path = fullpath.substr(0, pos + 1); // leave trailing backslash
+	}
+	return path;
+}
 
 bool ofxWinDialog::RegisterDialog()
 {
@@ -698,9 +747,14 @@ void ofxWinDialog::ButtonPicture(std::string path)
 // Button picture from image pixels
 void ofxWinDialog::ButtonPicture(unsigned char *imageData, int width, int height, int nchannels, bool bInvert, bool bSwapRG)
 {
-	g_hBitmap = CreateBitmap(imageData, width, height, nchannels, bInvert, bSwapRG);
+	g_hBitmap = CreateButtonBitmap(imageData, width, height, nchannels, bInvert, bSwapRG);
 }
 
+// Button picture from bitmap
+void ofxWinDialog::ButtonPicture(HBITMAP hBitmap)
+{
+	g_hBitmap = hBitmap;
+}
 
 // Static Group box
 // A group box is not a control and has no title
@@ -1193,13 +1247,17 @@ void ofxWinDialog::SetButtonPicture(std::string title, unsigned char *imageData,
 	}
 
 	// Button not found
-	if (index < 0)
+	if (index < 0) {
+		printf("ofxWinDialog::SetButtonPicture - button not found\n");
 		return;
+	}
 
 	// Bitmap for the button
-	HBITMAP hBitmap = CreateBitmap(imageData, width, height, nchannels, bInvert, bSwapRG);
-	if (!hBitmap)
+	HBITMAP hBitmap = CreateButtonBitmap(imageData, width, height, nchannels, bInvert, bSwapRG);
+	if (!hBitmap) {
+		printf("ofxWinDialog::SetButtonPicture - could not create button bitmap\n");
 		return;
+	}
 
 	// Set the new button control handle for draw
 	controls[index].hwndType = (HWND)hBitmap;
@@ -1650,7 +1708,7 @@ void ofxWinDialog::SetPosition(int x, int y, int width, int height)
 {
     dialogX = x;
     dialogY = y;
-    dialogWidth = width;
+	dialogWidth = width;
     dialogHeight = height;
 }
 
@@ -1696,11 +1754,21 @@ HWND ofxWinDialog::Open(std::string title)
 		}
 		//  o if y is zero, offset from the centre by the x amount
 		else if (dialogY == 0 && dialogX != CW_USEDEFAULT) {
-			// If y is zero, offset left or right
-			// from the left side of the host window
-			ypos = rect.top + rheight / 2 - dialogHeight / 2;
-			xpos = rect.left + rwidth / 2 - dialogWidth / 2;
-			ypos = rect.top + rheight / 2 - dialogHeight / 2;
+			//  o if y is zero, offset from the left by the x amount
+			//    and position at the top of the window or offset
+			//    from the centre if the dialog height is greater
+			if(dialogHeight > rheight)
+				ypos = rect.top + rheight / 2 - dialogHeight / 2;
+			else
+				ypos = rect.top;
+			if (ypos < 0) ypos = 0;
+			// Prevent the bottom of the dialog going past work area height
+			RECT workArea{};
+			SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
+			int wheight = workArea.bottom - workArea.top;
+			if ((ypos + dialogHeight) > wheight)
+				ypos = wheight - dialogHeight;
+
 			xpos = rect.left + dialogX;
 			if (xpos < 0) xpos = 0;
 		}
@@ -2013,6 +2081,10 @@ HWND ofxWinDialog::Open(std::string title)
         // Combo box list selection control
         //
         if (controls[i].Type == "Combo") {
+
+			// DEBUG
+			// MessageBoxA(NULL, "Combo box", "", 0);
+
 			// Style CBS_DROPDOWN allows user entry
 			// Default is CBS_DROPDOWNLIST which prevents user entry
 			DWORD dwStyle = WS_TABSTOP | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE;
@@ -2039,10 +2111,12 @@ HWND ofxWinDialog::Open(std::string title)
                 SendMessage(hwndc, CB_SETCURSEL, (WPARAM)controls[i].Index, (LPARAM)0);
 
                 // Select all text in the edit field
-                SendMessage(hwndc, CB_SETEDITSEL, 0, MAKELONG(0, -1));
+				if((dwStyle & CBS_DROPDOWN) == CBS_DROPDOWN)
+					SendMessage(hwndc, CB_SETEDITSEL, 0, MAKELONG(0, -1));
 
                 controls[i].hwndControl = hwndc;
                 controls[i].ID = ID;
+
                 ID++;
             }
         }
@@ -2446,9 +2520,10 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 					if (controls[i].Index > 0) {
 
 						HWND hwndCtrl = controls[i].hwndControl;
-						PAINTSTRUCT ps;
+						PAINTSTRUCT ps{};
 						HDC hdc = BeginPaint(hwndCtrl, &ps);
 						HFONT hOldFont = nullptr;
+
 
 						// Select the dialog font if created
 						if(g_hFont)

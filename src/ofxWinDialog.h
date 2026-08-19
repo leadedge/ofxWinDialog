@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <io.h>
+
 // For file read to a string
 #include <iostream>
 #include <fstream>
@@ -16,17 +17,20 @@
 #include <Shlwapi.h> // For path functions
 #include <uxtheme.h> // For visual style themes
 #include <dwmapi.h> // For thick window frame if transparent
-#pragma comment(lib, "comctl32.lib")
+#pragma comment(lib, "comctl32.lib") // See manifest below
 #pragma comment(lib, "Shlwapi.Lib")
 #pragma comment(lib, "UxTheme.lib")
 #pragma comment(lib, "dwmapi.lib")
 
-// This adds the spoututils namespace so that SpoutUtils functions
-// are generally available and SpoutMessageBox can be used.
-// SpoutUtils includes a manifest for Version 6 common controls.
-// See also "DisableTheme" below.
-#include "../libs/SpoutUtils.h"
-using namespace spoututils;
+// Manifest for Version 6 common controls
+// Runtime dependency for "DisableTheme"
+#ifdef _MSC_VER
+// https://learn.microsoft.com/en-us/windows/win32/controls/cookbook-overview
+// comctl32.dll version 6
+#pragma comment(linker,"\"/manifestdependency:type='win32' \
+name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
+processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#endif
 
 //
 // Enable this define to use ofxWinDialog with
@@ -34,10 +38,9 @@ using namespace spoututils;
 // (See also the "standaloneUtils" define in SpoutUtils.h
 // to use SpoutUtils independently of Spout source files)
 //
-// #define standalone
+// #define standaloneWinDialog
 
-
-#ifdef standalone
+#ifdef standaloneWinDialog
 
 //
 // ofxWinDialog is designed to use a callback function within
@@ -179,7 +182,10 @@ public:
 
 	// Button picure from image pixels
 	void ButtonPicture(unsigned char * imageData, int width, int height, int nchannels, bool bInvert, bool bSwapRG);
-	
+
+	// Button picture from bitmap
+	void ButtonPicture(HBITMAP hBitmap);
+
     //
     // Slider
     //
@@ -315,7 +321,6 @@ public:
 	void SetButtonPicture(std::string title, std::string path);
 	void SetButtonPicture(std::string title, unsigned char* imageData, int width, int height, int nchannels, bool bInvert, bool bSwapRG);
 
-
 	// Enable/Disable a control
 	// (Except Hyperlink, Static and Group)
 	void EnableControl(std::string title, bool bEnabled);
@@ -383,8 +388,10 @@ public:
     // Set dialog position and size
     //  o If x and y are both positive, that position is used
     //  o If x and y are both zero, centre on the host window
-    //  o if y is zero, offset from the centre by the x amount
-    //  o If x and y are both negative, centre on the desktop
+	//  o if y is zero, offset from the left by the x amount
+	//    and position at the top of the window or offset
+	//    from the centre if the dialog height is greater
+	//  o If x and y are both negative, centre on the desktop
     //  o if x is CW_USEDEFAULT the system selects x and ignores y 
     void SetPosition(int x, int y, int width, int height);
 
@@ -450,7 +457,7 @@ public:
 
         uint64_t ID = 0LL; // Control ID
         DWORD Style = 0; // Static text and button style
-        bool VisualStyle = true; // Enable or diasble Visual Styles for a control
+        bool VisualStyle = true; // Enable or disable Visual Styles for a control
         HWND hwndControl = NULL;
         HWND hwndType = NULL;
         HWND hwndSlider = NULL;
@@ -506,13 +513,23 @@ public:
     LONG fontweight = FW_NORMAL;
 	HFONT g_hFont = NULL;
 
+	// TODO
+	// Windows scale factor
+	// double g_Scale = 1.0; // default 100%
+
 	// Register dialog window
 	bool RegisterDialog();
 	bool bRegistered = false;
 
 	// Create button bitmap from image path
 	HBITMAP CreateButtonBitmap(std::string path);
-	// Create bitmap from pixel buffer
-	HBITMAP CreateBitmap(unsigned char* buffer, int width, int height, int nchannels, bool bInvert, bool bSwapRG);
+	// Create button bitmap from pixel buffer
+	HBITMAP CreateButtonBitmap(unsigned char* pixels, int width, int height, int nchannels, bool bInvert, bool bSwapRG);
+
+	// Get executable or dll path
+	std::string GetExePath(bool bFull = false);
+	// Remove file name and return the path
+	std::string GetPath(std::string fullpath);
+
 
  };
