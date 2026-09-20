@@ -164,6 +164,10 @@
 //		21.07.26 - Prevent the bottom of the dialog going past work area height
 //		18.08.26 - Remove using spoututils namespace from header
 //				   Retain manifest for comctl32.dll version 6
+//		20.08.26 - Add SaveIconImage
+//				   Add stb_image_write.h to libraries
+//		21.08.26 - Update LoadWindowsIcon function
+//				   to include desired width and height
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -173,6 +177,10 @@
 // Must be in the cpp file, not the header
 #define STB_IMAGE_IMPLEMENTATION
 #include "../libs/stb_image.h"
+
+// To save an icon as a png image
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "../libs/stb_image_write.h"
 
 // Main Windows message procedure that forwards
 // messages to the instance's message handler
@@ -190,6 +198,32 @@ static HWND hwndDialog = NULL;
 static bool bOver = false;
 // Flag to indicat the trackbar thumb is being dragged by the user
 static bool bDrag = false;
+
+#pragma pack(push, 2)
+struct GRPICONDIRENTRY {
+    BYTE    bWidth;       // 0 means 256
+    BYTE    bHeight;      // 0 means 256
+    BYTE    bColorCount;
+    BYTE    bReserved;
+    WORD    wPlanes;
+    WORD    wBitCount;
+    DWORD   dwBytesInRes;
+    WORD    nId;          // RT_ICON resource ID
+};
+struct GRPICONDIR {
+    WORD idReserved;
+    WORD idType;
+    WORD idCount;
+    GRPICONDIRENTRY idEntries[1];
+};
+#pragma pack(pop)
+
+// Convert ICO's 0 value to its actual dimension.
+static int IconDimension(BYTE value)
+{
+    return value == 0 ? 256 : static_cast<int>(value);
+}
+
 
 ofxWinDialog::ofxWinDialog(ofApp* app, HINSTANCE hInstance,
 	HWND hWnd, std::string className, int background)
@@ -2429,27 +2463,278 @@ COLORREF ofxWinDialog::Hex2Rgb(int hex, int* red, int* grn, int* blu)
 	return RGB(r, g, b);
 }
 
-// Load an icon from Shell32.dll (default) or imageres.dll
+//
+// Extract an icon from a dll file (default Shell32.dll)
+// These charts are useful :
 //   https://renenyffenegger.ch/development/Windows/PowerShell/examples/WinAPI/ExtractIconEx/shell32.html
 //   https://renenyffenegger.ch/development/Windows/PowerShell/examples/WinAPI/ExtractIconEx/imageres.html
-HICON ofxWinDialog::LoadWindowsIcon(int iconIndex, bool bImageres)
+// However, icon indices vary.
+// They can be found using Windows Explorer.
+//    Browse to the file : for example C:\Windows\System32\Shell32.dll
+//    ALT-ENTER or Right click > Properties
+//    Select the \"Icons\" tab and scroll to the required icon
+//    The icon number is shown beneath the icon image
+//
+HICON ofxWinDialog::LoadWindowsIcon(int iconIndex, const char* dllName, int width, int height)
 {
-	char path[MAX_PATH] {};
-	UINT length = GetSystemDirectoryA(path, MAX_PATH);
-	if (length > 0 && length < MAX_PATH) {
-		std::string dllPath;
-		if (bImageres)
-			dllPath = std::string(path) + "\\imageres.dll";
-		else
-			dllPath = std::string(path) + "\\Shell32.dll";
-		// Does the file exist?
-		if (_access(dllPath.c_str(), 0) != -1) {
-			return ExtractIconA(nullptr, dllPath.c_str(), iconIndex);
-		}
-	}
-	return nullptr;
+	char path[MAX_PATH]{};
+    UINT length = GetSystemDirectoryA(path, MAX_PATH);
+    if (length == 0 || length >= MAX_PATH)
+        return nullptr;
+
+    std::string dllPath = std::string(path) + "\\";
+    if (!dllName || !dllName[0])
+        dllPath += "Shell32.dll";
+    else
+        dllPath += dllName;
+
+	// https://devblogs.microsoft.com/oldnewthing/20100505-00/?p=14153
+	//   For a negative index, the absolute value is interpreted as
+	// the resource ID. Although ?1 for Extract­Icon returns the
+	// number of icons in the file.
+	//   If the last flag is not specified (0) and width and height
+	// are set to zero, the function uses the actual resource size.
+	// If the resource contains multiple images, the function uses
+	// the size of the first image.
+	HICON hIcon = nullptr;
+    UINT iconId = 0;
+	UINT result = PrivateExtractIconsA(dllPath.c_str(),
+		-iconIndex, width, height,
+		&hIcon, &iconId, 1, 0);
+
+    if (result == 1 && hIcon != nullptr)
+        return hIcon;
+	else
+		return nullptr;
+
 }
 
+// Save an icon as a png or ico file
+// at the requested width/height.
+// For .ico, a single PNG-compressed image is stored inside the ICO file.
+// This supports 32-bit color and transparency.
+bool ofxWinDialog::SaveIconImage(HICON hIcon, const char* filename, int swidth, int sheight)
+{
+    if (!hIcon || !filename)
+        return false;
+
+    // Determine file type from extension.
+    std::string name(filename);
+    size_t dot = name.find_last_of('.');
+    if (dot == std::string::npos)
+        return false;
+
+    std::string extension = name.substr(dot + 1);
+
+    std::transform(
+        extension.begin(),
+        extension.end(),
+        extension.begin(),
+        [](unsigned char c) {
+            return static_cast<char>(std::tolower(c));
+        });
+
+    bool isPng = extension == "png";
+    bool isIco = extension == "ico";
+    if (!isPng && !isIco)
+        return false;
+
+    // Create a 32-bit top-down DIB.
+    HDC screenDC = GetDC(nullptr);
+    if (!screenDC)
+        return false;
+
+    HDC memDC = CreateCompatibleDC(screenDC);
+    if (!memDC) {
+        ReleaseDC(nullptr, screenDC);
+        return false;
+    }
+
+	// Get the icon size if width and height are zero
+	int width = swidth;
+	int height = sheight;
+	if (width <= 0) {
+		ICONINFO ii{};
+		BITMAP bm{};
+		if (GetIconInfo(hIcon, &ii)) {
+			GetObject(ii.hbmColor, sizeof(bm), &bm);
+			width  = bm.bmWidth;
+			height = bm.bmHeight;
+			DeleteObject(ii.hbmColor);
+			DeleteObject(ii.hbmMask);
+		}
+	}
+
+    BITMAPINFO bi{};
+    bi.bmiHeader.biSize        = sizeof(BITMAPINFOHEADER);
+    bi.bmiHeader.biWidth       = width;
+    bi.bmiHeader.biHeight      = -height; // top-down
+    bi.bmiHeader.biPlanes      = 1;
+    bi.bmiHeader.biBitCount    = 32;
+    bi.bmiHeader.biCompression = BI_RGB;
+
+    void* bits = nullptr;
+    HBITMAP bitmap = CreateDIBSection(screenDC, &bi,
+        DIB_RGB_COLORS, &bits, nullptr, 0);
+
+    if (!bitmap) {
+        DeleteDC(memDC);
+        ReleaseDC(nullptr, screenDC);
+        return false;
+    }
+
+	// Select bitmap into DC.
+    HGDIOBJ oldBitmap = SelectObject(memDC, bitmap);
+    if (!oldBitmap) {
+        DeleteObject(bitmap);
+        DeleteDC(memDC);
+        ReleaseDC(nullptr, screenDC);
+        return false;
+    }
+
+    // Clear bitmap to transparent.
+    std::memset(bits, 0, (size_t)width*(size_t)height*4);
+
+	// Draw the icon.
+    BOOL drawn = DrawIconEx(memDC, 0, 0, hIcon,
+		width, height, 0, nullptr, DI_NORMAL);
+
+    SelectObject(memDC, oldBitmap);
+
+    if (!drawn) {
+        DeleteObject(bitmap);
+        DeleteDC(memDC);
+        ReleaseDC(nullptr, screenDC);
+        return false;
+    }
+
+    // Convert Windows BGRA to RGBA.
+    const size_t pixelCount = (size_t)width*(size_t)height;
+
+    std::vector<uint8_t> rgba(pixelCount * 4);
+    const uint8_t* src = (const uint8_t*)bits;
+    for (size_t i = 0; i < pixelCount; i++) {
+        rgba[i * 4 + 0] = src[i * 4 + 2]; // R
+        rgba[i * 4 + 1] = src[i * 4 + 1]; // G
+        rgba[i * 4 + 2] = src[i * 4 + 0]; // B
+        rgba[i * 4 + 3] = src[i * 4 + 3]; // A
+    }
+
+	// PNG
+    if (isPng) {
+        int result = stbi_write_png(filename, width, height,
+			4, rgba.data(), width*4);
+        DeleteObject(bitmap);
+        DeleteDC(memDC);
+        ReleaseDC(nullptr, screenDC);
+        return result != 0;
+    }
+
+    //
+	// ICO
+    //
+    // Encode the RGBA image as PNG in memory.
+    int pngSize = 0;
+    unsigned char* pngData = stbi_write_png_to_mem(rgba.data(),
+            width*4, width, height, 4, &pngSize);
+
+	if (!pngData || pngSize <= 0) {
+        DeleteObject(bitmap);
+        DeleteDC(memDC);
+        ReleaseDC(nullptr, screenDC);
+        return false;
+    }
+
+	// ICO structures.
+    // ICONDIR:
+    //   WORD  idReserved
+    //   WORD  idType
+    //   WORD  idCount
+    // ICONDIRENTRY:
+    //   BYTE  bWidth
+    //   BYTE  bHeight
+    //   BYTE  bColorCount
+    //   BYTE  bReserved
+    //   WORD  wPlanes
+    //   WORD  wBitCount
+    //   DWORD dwBytesInRes
+    //   DWORD dwImageOffset
+
+#pragma pack(push, 1)
+    struct ICONDIR {
+        uint16_t idReserved;
+        uint16_t idType;
+        uint16_t idCount;
+    };
+
+    struct ICONDIRENTRY
+    {
+        uint8_t  bWidth;
+        uint8_t  bHeight;
+        uint8_t  bColorCount;
+        uint8_t  bReserved;
+        uint16_t wPlanes;
+        uint16_t wBitCount;
+        uint32_t dwBytesInRes;
+        uint32_t dwImageOffset;
+    };
+#pragma pack(pop)
+
+    ICONDIR iconDir{};
+    iconDir.idReserved = 0;
+    iconDir.idType     = 1;       // Icon
+    iconDir.idCount    = 1;
+
+	ICONDIRENTRY entry{};
+    // ICO uses 0 to mean 256.
+    entry.bWidth  = (width >= 256) ? 0  : (uint8_t)width;
+    entry.bHeight = (height >= 256) ? 0 : (uint8_t)height;
+    entry.bColorCount = 0;
+    entry.bReserved   = 0;
+    entry.wPlanes  = 1;
+    entry.wBitCount = 32;
+    entry.dwBytesInRes = (uint32_t)pngSize;
+    entry.dwImageOffset = sizeof(ICONDIR) + sizeof(ICONDIRENTRY);
+
+    // Write ICO file.
+    FILE* file = nullptr;
+#ifdef _MSC_VER
+    if (fopen_s(&file, filename, "wb") != 0)
+        file = nullptr;
+#else
+    file = std::fopen(filename, "wb");
+#endif
+
+    if (!file) {
+        STBIW_FREE(pngData);
+        DeleteObject(bitmap);
+        DeleteDC(memDC);
+        ReleaseDC(nullptr, screenDC);
+        return false;
+    }
+
+    bool success = true;
+    if (fwrite(&iconDir, sizeof(iconDir), 1, file) != 1)
+        success = false;
+
+    if (success && fwrite(&entry, sizeof(entry), 1, file) != 1) {
+        success = false;
+    }
+
+    if (success && fwrite(pngData, 1, pngSize, file) != (size_t)pngSize) {
+        success = false;
+    }
+
+    fclose(file);
+
+    STBIW_FREE(pngData);
+
+    DeleteObject(bitmap);
+    DeleteDC(memDC);
+    ReleaseDC(nullptr, screenDC);
+
+    return success;
+}
 
 //
 // Windows message callback function

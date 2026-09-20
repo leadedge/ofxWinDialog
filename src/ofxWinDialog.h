@@ -7,6 +7,10 @@
 #include <string>
 #include <vector>
 #include <io.h>
+#include <cstring>
+#include <algorithm>
+#include <cstdint>
+#include <climits>
 
 // For file read to a string
 #include <iostream>
@@ -37,6 +41,9 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 // applications other than Openframeworks.
 // (See also the "standaloneUtils" define in SpoutUtils.h
 // to use SpoutUtils independently of Spout source files)
+//
+// This can also be defined in the application using ofxWinDialog
+// before including "ofxWinDialog.h"
 //
 // #define standaloneWinDialog
 
@@ -421,11 +428,12 @@ public:
 	int Rgb2Hex(int r, int g, int b);
 	// Hex to red, green, blue values
 	COLORREF Hex2Rgb(int hex, int* red=nullptr, int* grn=nullptr, int* blu=nullptr);
-	// Load an icon from Shell32.dll (default) or imageres.dll
-	HICON LoadWindowsIcon(int iconIndex, bool bImageres = false);
+	// Load an icon of desired size from a Windows dll (default Shell32.dll)
+	HICON LoadWindowsIcon(int iconIndex, const char* dllName = nullptr, int width = 0, int height = 0);
+	// Save an icon as a png or ico file
+	bool SaveIconImage(HICON hIcon, const char* filename, int width = 0, int height = 0);
 
-
-    //
+	//
     // Control variables
     //
     struct ctl {
