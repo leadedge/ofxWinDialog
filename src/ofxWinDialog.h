@@ -21,10 +21,13 @@
 #include <Shlwapi.h> // For path functions
 #include <uxtheme.h> // For visual style themes
 #include <dwmapi.h> // For thick window frame if transparent
+#include <ShellScalingApi.h> // For monitor dpi
+
 #pragma comment(lib, "comctl32.lib") // See manifest below
 #pragma comment(lib, "Shlwapi.Lib")
 #pragma comment(lib, "UxTheme.lib")
 #pragma comment(lib, "dwmapi.lib")
+#pragma comment(lib, "Shcore.lib")
 
 // Manifest for Version 6 common controls
 // Runtime dependency for "DisableTheme"
@@ -42,10 +45,7 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 // (See also the "standaloneUtils" define in SpoutUtils.h
 // to use SpoutUtils independently of Spout source files)
 //
-// This can also be defined in the application using ofxWinDialog
-// before including "ofxWinDialog.h"
-//
-// #define standaloneWinDialog
+#define standaloneWinDialog
 
 #ifdef standaloneWinDialog
 
@@ -309,8 +309,6 @@ public:
 	// Get control handle
 	HWND GetControlWindow(std::string title);
 
-
-
     //
 	// Set dialog control values
 	//
@@ -392,20 +390,40 @@ public:
 	// Hide on open
 	void Hide();
 
+	// Modal dialog
+	void Modal(HWND hParent);
+
+	//
     // Set dialog position and size
+	//
+	// Position
     //  o If x and y are both positive, that position is used
     //  o If x and y are both zero, centre on the host window
 	//  o if y is zero, offset from the left by the x amount
 	//    and position at the top of the window or offset
 	//    from the centre if the dialog height is greater
 	//  o If x and y are both negative, centre on the desktop
-    //  o if x is CW_USEDEFAULT the system selects x and ignores y 
+    //  o if x is CW_USEDEFAULT the system selects x and ignores y
+	//
+	// Size
     void SetPosition(int x, int y, int width, int height);
 
     // Open dialog window with controls
     HWND Open(std::string title);
 
-    // Close dialog window and retain controls
+	// Get the dpi adjusted opening width
+	int OpenWidth();
+
+	// Get the dpi adjusted opening height
+	int OpenHeight();
+
+	// Get the opening X position
+	int OpenX();
+
+	// Get the opening Y position
+	int OpenY();
+
+	// Close dialog window and retain controls
     void Close();
 
     // Disable Visual Style themes for dialog controls
@@ -487,6 +505,7 @@ public:
  private:
 
     HWND m_hwnd = NULL; // Parent window handle
+	DWORD m_dwStyle = WS_CAPTION | WS_POPUP | WS_SYSMENU; // Main dialog style (see SetWindowPos)
 	HINSTANCE m_hInstance = NULL; // Parent instance handle
 	ofApp * pApp = nullptr; // Pointer to access the ofApp class
 	HICON m_hIcon = nullptr; // Dialog icon
@@ -501,8 +520,10 @@ public:
 	// Dialog position and size
     int dialogX = 0;
     int dialogY = 0;
-    int dialogWidth = 0;
-    int dialogHeight = 0;
+    int dialogWidth = 0;  // window width
+    int dialogHeight = 0; // window height
+    int clientWidth = 0;  // client width
+    int clientHeight = 0; // client height
 
 	// Transparent style
 	bool bTransparent = false;
@@ -520,10 +541,10 @@ public:
 	LONG fontheight = 0;
     LONG fontweight = FW_NORMAL;
 	HFONT g_hFont = NULL;
-
-	// TODO
-	// Windows scale factor
-	// double g_Scale = 1.0; // default 100%
+	// System dpi for Windows scale factor
+	UINT g_dpiSystem = 96; // default at 100%
+	bool bModal = false; // Modal dialog
+	HWND hwndParent = nullptr; // Parent of modal dialog
 
 	// Register dialog window
 	bool RegisterDialog();

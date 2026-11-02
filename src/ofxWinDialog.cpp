@@ -36,7 +36,7 @@
 //				   Rename GetMsgProc to GetKeyMsgProc to avoid naming conflicts
 //				   Save - full path on overwrite warn.
 //		22.01.25 - SetFont - Specify font height in dialog units.
-//				   Convert dialog units to logical units based on screen dpi.
+//				   Convert dialog units to logical units based on current dpi.
 //				   Add GetFontHeight() function.
 //		23.01.25 - Add Spin control. Update full example.
 //				   Change class callback function from void to LRESULT
@@ -168,6 +168,22 @@
 //				   Add stb_image_write.h to libraries
 //		21.08.26 - Update LoadWindowsIcon function
 //				   to include desired width and height
+//		16.10.26 - Use the default screen DPI when calculating logical font height.
+//				   A negative value adjusts for display dpi.
+//		19.10.26 - Use AdjustWindowRectExForDpi to adjust dialog width and height
+//				   for the current system dpi
+//		21.10.26 - SetPosition
+//				   - Dialog width and height passed in are determined visually
+//				     Calculate the non-client margins at the dpi when compiled
+//				     and the corresponding desired client size to use in Open
+//				   Open
+//				   - Adjust dialog window size according to the desired client size
+//				     and runtime system dpi
+//				   - Calculate logical font height based on the current screen dpi
+//		29.10.26 - Add GetDialogWidth, GetDialogHeight, GetDialogX and GetDialogY
+//		30.10.26 - Hyperlink control WM_COMMAND - look for - "?noclose" for the dialog to remain open
+//		31.10.26 - Call DestroyWindow for WM_CLOSE and not WM_DESTROY
+//		02.11.26 - Add modal dialog function - Modal(HWND hParent)
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -232,14 +248,8 @@ ofxWinDialog::ofxWinDialog(ofApp* app, HINSTANCE hInstance,
 	m_hwnd = hWnd;
 	pApp = app; // The ofApp class pointer
 
-	SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-
-	// TODO
 	// Make sure the program is per-monitor DPI aware
-	// Get the window scaling factor (100/125/150% etc)
-	// 96 DPI = 100%, 120 DPI = 125%, 144 DPI = 150% etc
-	// g_Scale = (double)GetDpiForWindow(hWnd)/96.0;
-	// printf("ofxWinDialog - scale = %.2f\n", g_Scale);
+	SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
 	// Default background brush is CTLCOLOR_DLG (light grey)
 	g_hBrush = CreateSolidBrush(GetSysColor(CTLCOLOR_DLG));
@@ -1648,6 +1658,7 @@ bool ofxWinDialog::Load(std::string filename, std::string section)
             else if (controls[i].Type == "Checkbox") {
                 if (GetPrivateProfileStringA((LPCSTR)ControlSection.c_str(), (LPCSTR)controls[i].Title.c_str(), NULL, (LPSTR)tmp, MAX_PATH, (LPCSTR)inipath.c_str()) > 0) {
                     if (tmp[0]) controls[i].Val = atoi(tmp);
+					// printf("ofxWinDialog::Load - checkbox[%s] = %d\n", controls[i].Title.c_str(), controls[i].Val); 
                 }
             }
             else if (controls[i].Type == "Radio") {
@@ -1738,20 +1749,46 @@ HICON ofxWinDialog::GetIcon()
 }
 
 // Dialog position and size are set before opening the window
+// x, y, width, height are pixel units
 void ofxWinDialog::SetPosition(int x, int y, int width, int height)
 {
     dialogX = x;
     dialogY = y;
-	dialogWidth = width;
-    dialogHeight = height;
+
+	// The dialog width and height passed in are determined visually
+	// Calculate the non-client margins required at the
+	// the default display scaling and dpi (100% or 96 dpi)
+	// using a zero size client rectangle
+	// https://devblogs.microsoft.com/oldnewthing/20131017-00/?p=2903/
+	RECT rc{};
+	AdjustWindowRectExForDpi(&rc, m_dwStyle, FALSE, 0, 96);
+
+	// rc now contains the non-client margins relative to
+	// a zero-sized client rectangle.
+	// Left and top are negative, right and bottom are positive.
+	int padw = rc.right-rc.left;
+	int padh = rc.bottom-rc.top;
+
+	// Desired client size
+	clientWidth  = width-padw;
+    clientHeight = height-padh;
+
+	// The dialog window size is adjusted according to the
+	// desired client size and current runtime system dpi
+	// (see ofxWinDialog::Open)
+
 }
 
+//
 // Create dialog window
-// Dialog position and size must have been set by SetPosition
+//
+// The desired client size must have been set
+// (see ofxWinDialog::SetPosition)
+//
 HWND ofxWinDialog::Open(std::string title)
 {
 	// Safety
-	if (dialogWidth == 0 || dialogHeight == 0)
+	if (clientWidth == 0 || clientHeight == 0)
 		return NULL;
 
 	// Register the dialog window if not already
@@ -1763,51 +1800,6 @@ HWND ofxWinDialog::Open(std::string title)
 	// Dialog position
 	int xpos = dialogX;
 	int ypos = dialogY;
-
-	//  o If x and y are both negative, centre on the desktop
-	//  o If x and y are both positive, that position is used
-	if (dialogX < 0 && dialogY < 0) {
-		xpos = (GetSystemMetrics(SM_CXSCREEN) - dialogWidth) / 2;
-		ypos = (GetSystemMetrics(SM_CYSCREEN) - dialogHeight) / 2;
-	}
-
-	// Relative to parent window
-	if (m_hwnd) {
-
-		// Parent window size (can be zero)
-		RECT rect {};
-		GetWindowRect(m_hwnd, &rect);
-		int rwidth = rect.right - rect.left;
-		int rheight = rect.bottom - rect.top;
-
-		//	o If x and y are both zero, centre on the host window
-		if (dialogX == 0 && dialogY == 0) {
-			// Centre on the host window
-			xpos = rect.left + rwidth / 2 - dialogWidth / 2;
-			ypos = rect.top + rheight / 2 - dialogHeight / 2;
-		}
-		//  o if y is zero, offset from the centre by the x amount
-		else if (dialogY == 0 && dialogX != CW_USEDEFAULT) {
-			//  o if y is zero, offset from the left by the x amount
-			//    and position at the top of the window or offset
-			//    from the centre if the dialog height is greater
-			if(dialogHeight > rheight)
-				ypos = rect.top + rheight / 2 - dialogHeight / 2;
-			else
-				ypos = rect.top;
-			if (ypos < 0) ypos = 0;
-			// Prevent the bottom of the dialog going past work area height
-			RECT workArea{};
-			SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
-			int wheight = workArea.bottom - workArea.top;
-			if ((ypos + dialogHeight) > wheight)
-				ypos = wheight - dialogHeight;
-
-			xpos = rect.left + dialogX;
-			if (xpos < 0) xpos = 0;
-		}
-		//  o if x is CW_USEDEFAULT the system selects the default x and ignores y
-	}
 
 	#ifdef UNICODE
 	// Title is wide chars
@@ -1821,15 +1813,37 @@ HWND ofxWinDialog::Open(std::string title)
     // No minimize, maximize or menu
     // WS_CAPTION | WS_SYSMENU gives a close button and icon
     // No WS_VISIBLE - ShowWindow when all controls have been created
-	DWORD dwStyle = WS_CAPTION | WS_OVERLAPPED | WS_SYSMENU;
+	// See m_dwStyle in the header (WS_CAPTION | WS_OVERLAPPED | WS_SYSMENU)
 	if (bResizable)
-		dwStyle |= WS_THICKFRAME;
+		m_dwStyle |= WS_THICKFRAME;
 
+	// Caption and borders can change size with display scaling and dpi.
+	// Calculate the required size of the window rectangle based on the
+	// desired size of the client rectangle and the current system DPI
+
+	// Desired client rectangle size
+	RECT rect{};
+	rect.top    = 0;
+	rect.left   = 0;
+	rect.right  = rect.left + clientWidth;
+	rect.bottom = rect.top + clientHeight;
+
+	// Current system DPI
+	g_dpiSystem  = GetDpiForSystem();
+
+	// "rect" will contain the window size to accommodate the desired client area
+	AdjustWindowRectExForDpi(&rect, m_dwStyle, FALSE, 0, g_dpiSystem);
+
+	// Save the dialog width and height from the new window rectangle
+	dialogWidth  = rect.right-rect.left;
+	dialogHeight = rect.bottom-rect.top;
+
+	// Create a window with the adjusted size
 	HWND hwnd = CreateWindow(m_ClassName, titlechars,
-        dwStyle,
-        xpos, ypos, dialogWidth, dialogHeight,
+        m_dwStyle,
+		0, 0, dialogWidth, dialogHeight,
         m_hwnd,      // Parent window
-        NULL,        // No menu
+        NULL,        // No menu and hidden
         m_hInstance, // Parent instance
         NULL);
 
@@ -1839,6 +1853,63 @@ HWND ofxWinDialog::Open(std::string title)
         MessageBoxA(NULL, str.c_str(), "Error", MB_OK | MB_ICONERROR);
         return 0;
     }
+
+	//
+	// Calculate the window position xpos, ypos
+	//
+	//  o If x and y are both negative, centre on the desktop
+	//  o If x and y are both positive, that position is used
+	if (dialogX < 0 && dialogY < 0) {
+		xpos = (GetSystemMetrics(SM_CXSCREEN) - dialogWidth) / 2;
+		ypos = (GetSystemMetrics(SM_CYSCREEN) - dialogHeight) / 2;
+	}
+
+	// Relative to parent window
+	if (m_hwnd) {
+
+		// printf("m_hwnd = 0x%X\n", PtrToUint(m_hwnd));
+
+		// Parent window size (can be zero)
+		RECT pw {};
+		GetWindowRect(m_hwnd, &pw);
+		int rwidth  = pw.right  - pw.left;
+		int rheight = pw.bottom - pw.top;
+		// printf("Parent window %d,%d %d x %d\n", pw.left, pw.top, rwidth, rheight);
+
+		//	o If x and y are both zero, centre on the host window
+		if (dialogX == 0 && dialogY == 0) {
+			// Centre on the host window
+			xpos = pw.left + rwidth / 2  - dialogWidth / 2;
+			ypos = pw.top  + rheight / 2 - dialogHeight / 2;
+		}
+
+		//  o if y is zero, offset from the centre by the x amount
+		else if (dialogY == 0 && dialogX != CW_USEDEFAULT) {
+			//  o if y is zero, offset from the left by the x amount
+			//    and position at the top of the window or offset
+			//    from the centre if the dialog height is greater
+			if(dialogHeight > rheight)
+				ypos = pw.top + rheight / 2 - dialogHeight / 2;
+			else
+				ypos = pw.top;
+			if (ypos < 0) ypos = 0;
+
+			// Prevent the bottom of the dialog going past work area height
+			RECT workArea{};
+			SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
+			int wheight = workArea.bottom - workArea.top;
+			if ((ypos + dialogHeight) > wheight)
+				ypos = wheight - dialogHeight;
+
+			xpos = pw.left + dialogX;
+			if (xpos < 0) xpos = 0;
+
+		}
+		//  o if x is CW_USEDEFAULT the system selects the default x and ignores y
+	}
+
+	// Adjust the window to the new position and dimensions
+	SetWindowPos(hwnd, HWND_TOP, xpos, ypos, dialogWidth, dialogHeight, SWP_ASYNCWINDOWPOS);
 
 	// Set transparency
 	if (bTransparent) {
@@ -2207,7 +2278,8 @@ HWND ofxWinDialog::Open(std::string title)
 
             hwndc = CreateWindowExA(0, "BUTTON", str.c_str(),
                 dwStyle,
-                controls[i].X, controls[i].Y, controls[i].Width, controls[i].Height,
+                controls[i].X, controls[i].Y,
+				controls[i].Width, controls[i].Height,
                 hwnd, (HMENU)ID, m_hInstance, NULL);
             if (hwndc) {
                 controls[i].hwndControl = hwndc;
@@ -2306,20 +2378,16 @@ HWND ofxWinDialog::Open(std::string title)
 
 		 //
 		 // Font height is in dialog units
-		 // Convert from dialog units to logical units and adjust for screen dpi.
+		 // Convert from dialog units to logical units
 		 // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-logfonta
 		 //
+		 // Calculate the logical font height based on the default dpi (96)
+		 // and number of dialog points per inch (72).
 		 //
-		 // Get the screen DPI
-		 HDC hdc = GetDC(NULL);
-		 int dpi = GetDeviceCaps(hdc, LOGPIXELSY);
-		 ReleaseDC(NULL, hdc);
-
-		 // Calculate the logical font height based on
-		 // the screen dpi and number of dialog points per inch (72)
-		 // A negative value ensures that the font scaling is
-		 // dynamic and adjusts for the DPI.
-		 logFont.lfHeight = -MulDiv(fontheight, dpi, 72);
+		 // A negative value ensures that the font scaling is dynamic and
+		 // adjusts for the current system dpi.
+		 //
+		 logFont.lfHeight = -MulDiv(fontheight, 96, 72);
 
          // Create the font
          HFONT hFont = CreateFontIndirectA(&logFont);
@@ -2352,10 +2420,48 @@ HWND ofxWinDialog::Open(std::string title)
 
 }
 
+// Get the dpi adjusted opening width
+int ofxWinDialog::OpenWidth()
+{
+	return dialogWidth;
+}
+
+// Get the dpi adjusted opening width
+int ofxWinDialog::OpenHeight()
+{
+	return dialogHeight;
+}
+
+// Get the opening X position
+int ofxWinDialog::OpenX()
+{
+	return dialogX;
+}
+
+// Get the dialog Y position
+int ofxWinDialog::OpenY()
+{
+	return dialogY;
+}
+
 // Close the dialog window
 void ofxWinDialog::Close()
 {
     if (m_hDialog && IsWindow(m_hDialog)) {
+
+		// Modal dialog
+		if (bModal) {
+			// Re-enable parent
+			EnableWindow(hwndParent, TRUE);
+			SetForegroundWindow(hwndParent);
+			// If the parent is a dialog, enable the main window
+			if (m_hwnd && hwndParent != m_hwnd)
+				EnableWindow(m_hwnd, TRUE);
+			// Disable global variables
+			hwndParent = nullptr;
+			bModal = false;
+		}
+
         // Bring the app window to the top
 		if (m_hwnd && IsWindow(m_hwnd)) {
 			SetWindowPos(m_hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
@@ -3106,11 +3212,24 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                  for (size_t i=0; i<controls.size(); i++) {
                      if (controls[i].Type == "Static" && controls[i].Index == 1) {
                          if (LOWORD(wParam) == controls[i].ID) {
+
+							 // Title is the text displayed, control text is the action taken
                              if(!controls[i].Text.empty()) {
-                                // Title is the text displayed, control text is the action taken
+								// Look for - "?noclose" for the dialog to remain open
+								// Close the dialog if not found
+								bool bClose = true;
+								size_t pos = controls[i].Text.find("?noclose");
+								if (pos != std::string::npos) {
+									// Found ?noclose - keep the dialog open
+									bClose = false;
+									// Remove "?noclose" from the url
+									controls[i].Text = controls[i].Text.substr(0, pos);
+								}
                                 ShellExecuteA(hwnd, "open", controls[i].Text.c_str(), NULL, NULL, SW_SHOWNORMAL);
-                                // Close the dialog
-                                SendMessage(hwnd, WM_CLOSE, 0, 0);
+								if (bClose) {
+									// Close the dialog
+									SendMessage(hwnd, WM_CLOSE, 0, 0);
+								}
 							 }
 							 else {
 								 // Inform ofApp for action
@@ -3305,10 +3424,12 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             break;
 
         case WM_CLOSE:
+			DestroyWindow(hwnd);
+			break;
+
         case WM_DESTROY:
 			DialogFunction("WM_DESTROY", "", PtrToUint(m_hDialog));
-            DestroyWindow(hwnd);
-            m_hDialog = nullptr;
+			m_hDialog = nullptr;
             break;
     }
 
@@ -3316,6 +3437,30 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 	return DefWindowProc(hwnd, msg, wParam, lParam);
 
 }
+
+// Modal dialog
+void ofxWinDialog::Modal(HWND hParent)
+{
+	// Save for close
+	hwndParent = hParent;
+	bModal = true;
+	
+	// Disable the parent (could be a dialog)
+	EnableWindow(hwndParent, FALSE);
+	// If the parent is a dialog, disable the main window
+	if(hwndParent != m_hwnd) 
+		EnableWindow(m_hwnd, FALSE);
+
+	// Modal dialog message loop
+	MSG msg{};
+	while (m_hDialog && IsWindow(m_hDialog) && GetMessageA(&msg, NULL, 0, 0) > 0) {
+		if (!IsDialogMessageA(m_hDialog, &msg)) {
+			TranslateMessage(&msg);
+			DispatchMessageA(&msg);
+		}
+	}
+}
+
 
 
 //
