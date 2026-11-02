@@ -45,7 +45,7 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 // (See also the "standaloneUtils" define in SpoutUtils.h
 // to use SpoutUtils independently of Spout source files)
 //
-#define standaloneWinDialog
+// #define standaloneWinDialog
 
 #ifdef standaloneWinDialog
 
