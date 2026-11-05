@@ -391,7 +391,7 @@ public:
 	void Hide();
 
 	// Modal dialog
-	void Modal(HWND hParent);
+	void DoModal(HWND hParent);
 
 	//
     // Set dialog position and size
@@ -543,7 +543,7 @@ public:
 	HFONT g_hFont = NULL;
 	// System dpi for Windows scale factor
 	UINT g_dpiSystem = 96; // default at 100%
-	bool bModal = false; // Modal dialog
+	bool bDoModal = false; // Modal dialog
 	HWND hwndParent = nullptr; // Parent of modal dialog
 
 	// Register dialog window

@@ -183,7 +183,9 @@
 //		29.10.26 - Add GetDialogWidth, GetDialogHeight, GetDialogX and GetDialogY
 //		30.10.26 - Hyperlink control WM_COMMAND - look for - "?noclose" for the dialog to remain open
 //		31.10.26 - Call DestroyWindow for WM_CLOSE and not WM_DESTROY
-//		02.11.26 - Add modal dialog function - Modal(HWND hParent)
+//		02.11.26 - Add modal dialog function - DoModal(HWND hParent)
+//				   Close() - remove bring app window to top for a modal dialog
+//		04.11.26 - WndProc WM_DESTROY - send "WM_DESTROY" to the dialog
 //
 #include "ofxWinDialog.h"
 #include <windows.h>
@@ -2448,9 +2450,8 @@ int ofxWinDialog::OpenY()
 void ofxWinDialog::Close()
 {
     if (m_hDialog && IsWindow(m_hDialog)) {
-
 		// Modal dialog
-		if (bModal) {
+		if (bDoModal) {
 			// Re-enable parent
 			EnableWindow(hwndParent, TRUE);
 			SetForegroundWindow(hwndParent);
@@ -2459,14 +2460,9 @@ void ofxWinDialog::Close()
 				EnableWindow(m_hwnd, TRUE);
 			// Disable global variables
 			hwndParent = nullptr;
-			bModal = false;
+			bDoModal = false;
 		}
-
-        // Bring the app window to the top
-		if (m_hwnd && IsWindow(m_hwnd)) {
-			SetWindowPos(m_hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
-		}
-        PostMessage(m_hDialog, WM_CLOSE, 0, 0);
+		PostMessage(m_hDialog, WM_CLOSE, 0, 0);
     }
 }
 
@@ -2875,7 +2871,7 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
     LPDRAWITEMSTRUCT lpdis ={};
     HCURSOR cursorHand = NULL;
 
-    switch (msg) {
+	switch (msg) {
 
 		case WM_ACTIVATE:
 			// Notify app if the window is activated
@@ -3428,7 +3424,8 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 			break;
 
         case WM_DESTROY:
-			DialogFunction("WM_DESTROY", "", PtrToUint(m_hDialog));
+			// Send WM_DESTROY to the dialog
+			DialogFunction("WM_DESTROY", "", 0);
 			m_hDialog = nullptr;
             break;
     }
@@ -3436,14 +3433,14 @@ LRESULT ofxWinDialog::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 	// Default message handling
 	return DefWindowProc(hwnd, msg, wParam, lParam);
 
-}
+} // end WindowProc
 
 // Modal dialog
-void ofxWinDialog::Modal(HWND hParent)
+void ofxWinDialog::DoModal(HWND hParent)
 {
 	// Save for close
 	hwndParent = hParent;
-	bModal = true;
+	bDoModal = true;
 	
 	// Disable the parent (could be a dialog)
 	EnableWindow(hwndParent, FALSE);
